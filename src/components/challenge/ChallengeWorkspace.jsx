@@ -1,79 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
 import FileExplorer from './FileExplorer';
 import EditorPane from './EditorPane';
 import PreviewPane from './PreviewPane';
 import './ChallengeWorkspace.css';
 
-const ChallengeWorkspace = ({ onExit }) => {
+const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName }) => {
   const [challengeData, setChallengeData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Auto-load the zip from the assigned ticket URL when provided
+  useEffect(() => {
+    if (!ticketUrl) return;
+    const loadFromUrl = async () => {
+      setIsLoading(true);
+      setError('');
+      try {
+        const response = await fetch(ticketUrl);
+        if (!response.ok) throw new Error(`Failed to fetch ticket (${response.status})`);
+        const arrayBuffer = await response.arrayBuffer();
+        await parseZip(arrayBuffer, ticketName || 'ticket.zip');
+      } catch (err) {
+        console.error(err);
+        setError('Could not load ticket: ' + err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadFromUrl();
+  }, [ticketUrl]);
+
+  // Shared ZIP parsing logic used by both URL-load and manual upload
+  const parseZip = async (source, fileName) => {
+    const zip = new JSZip();
+    const loadedZip = await zip.loadAsync(source);
+
+    let instruction = '';
+    let htmlContent = '';
+    const assets = {};
+    const blobUrls = {};
+    let hasStarter = false;
+    let hasInstruction = false;
+
+    for (const relativePath in loadedZip.files) {
+      const zipEntry = loadedZip.files[relativePath];
+      if (zipEntry.dir) continue;
+      if (relativePath.startsWith('__MACOSX/') || relativePath.split('/').pop().startsWith('.')) continue;
+
+      if (relativePath === 'instruction.txt' || relativePath.endsWith('/instruction.txt')) {
+        instruction = await zipEntry.async('string');
+        hasInstruction = true;
+      } else if (relativePath === 'starter.html' || relativePath.endsWith('/starter.html')) {
+        htmlContent = await zipEntry.async('string');
+        hasStarter = true;
+      } else if (relativePath.includes('assets/')) {
+        const assetPath = relativePath.substring(relativePath.indexOf('assets/'));
+        const blob = await zipEntry.async('blob');
+        const ext = assetPath.split('.').pop().toLowerCase();
+        let mimeType = 'application/octet-stream';
+        if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext === 'svg' ? 'svg+xml' : ext}`;
+        else if (['woff', 'woff2', 'ttf', 'otf'].includes(ext)) mimeType = `font/${ext}`;
+        else if (ext === 'css') mimeType = 'text/css';
+        else if (ext === 'js') mimeType = 'text/javascript';
+        const typedBlob = new Blob([blob], { type: mimeType });
+        assets[assetPath] = typedBlob;
+        blobUrls[assetPath] = URL.createObjectURL(typedBlob);
+      }
+    }
+
+    if (!hasStarter || !hasInstruction) {
+      throw new Error('Invalid ZIP format. Must contain instruction.txt and starter.html');
+    }
+
+    setChallengeData({ instruction, htmlContent, assets, blobUrls, startTime: Date.now(), fileName });
+  };
   const handleZipUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     setIsLoading(true);
     setError('');
-
     try {
-      const zip = new JSZip();
-      const loadedZip = await zip.loadAsync(file);
-
-      let instruction = '';
-      let htmlContent = '';
-      const assets = {};
-      const blobUrls = {};
-      let hasStarter = false;
-      let hasInstruction = false;
-
-      for (const relativePath in loadedZip.files) {
-        const zipEntry = loadedZip.files[relativePath];
-        if (zipEntry.dir) continue; // Skip directories
-
-        // Handle macOS __MACOSX and hidden files
-        if (relativePath.startsWith('__MACOSX/') || relativePath.split('/').pop().startsWith('.')) {
-          continue;
-        }
-
-        if (relativePath === 'instruction.txt' || relativePath.endsWith('/instruction.txt')) {
-          instruction = await zipEntry.async('string');
-          hasInstruction = true;
-        } else if (relativePath === 'starter.html' || relativePath.endsWith('/starter.html')) {
-          htmlContent = await zipEntry.async('string');
-          hasStarter = true;
-        } else if (relativePath.includes('assets/')) {
-          // Keep only the path starting from 'assets/' to avoid nested root folder issues
-          const assetPath = relativePath.substring(relativePath.indexOf('assets/'));
-          const blob = await zipEntry.async('blob');
-          
-          // Determine mime type from extension for blob (useful for fonts/images if browser needs it)
-          const ext = assetPath.split('.').pop().toLowerCase();
-          let mimeType = 'application/octet-stream';
-          if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext === 'svg' ? 'svg+xml' : ext}`;
-          else if (['woff', 'woff2', 'ttf', 'otf'].includes(ext)) mimeType = `font/${ext}`;
-          else if (ext === 'css') mimeType = 'text/css';
-          else if (ext === 'js') mimeType = 'text/javascript';
-          
-          const typedBlob = new Blob([blob], { type: mimeType });
-          assets[assetPath] = typedBlob;
-          blobUrls[assetPath] = URL.createObjectURL(typedBlob);
-        }
-      }
-
-      if (!hasStarter || !hasInstruction) {
-        throw new Error('Invalid ZIP format. Must contain instruction.txt and starter.html');
-      }
-
-      setChallengeData({
-        instruction,
-        htmlContent,
-        assets,
-        blobUrls,
-        startTime: Date.now(),
-        fileName: file.name
-      });
+      const arrayBuffer = await file.arrayBuffer();
+      await parseZip(arrayBuffer, file.name);
     } catch (err) {
       console.error(err);
       setError('Failed to extract ZIP: ' + err.message);
