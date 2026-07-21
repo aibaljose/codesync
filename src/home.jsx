@@ -82,6 +82,7 @@ function Home({ user }) {
   if (isChallengeMode) {
     return (
       <ChallengeWorkspace
+        user={user}
         onExit={() => setIsChallengeMode(false)}
         ticketUrl={assignedTicket?.url}
         ticketName={assignedTicket?.storedAs || assignedTicket?.fileName}
@@ -106,9 +107,26 @@ function Home({ user }) {
             <span className="user-email">{user.email}</span>
           </div>
         </div>
-        <button className="signout-btn" onClick={handleSignOut}>
-          Sign Out
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            onClick={() => navigate('/admin')}
+            style={{
+              padding: '0.5rem 1rem',
+              background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
+              color: '#0f172a',
+              fontWeight: 700,
+              borderRadius: '0.5rem',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.85rem'
+            }}
+          >
+            📊 Live Dashboard & Admin
+          </button>
+          <button className="signout-btn" onClick={handleSignOut}>
+            Sign Out
+          </button>
+        </div>
       </header>
 
       <section id="center">

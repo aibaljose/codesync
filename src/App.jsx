@@ -7,13 +7,17 @@ import Login from './auth/login'
 import Register from './auth/register'
 import Home from './home'
 import './App.css'
-import AdminUploadTicket from './admin/AdminUploadTicket'
+import AdminDashboard from './admin/AdminDashboard'
+import { useUserPresence } from './hooks/useUserPresence'
 
 function App() {
   const [user, setUser] = useState(null)
   const [needsRegistration, setNeedsRegistration] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
   const navigate = useNavigate()
+
+  // Track real-time presence in Firebase Realtime Database
+  useUserPresence(user)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -60,7 +64,7 @@ function App() {
     <Routes>
       <Route
         path="/admin"
-        element={<AdminUploadTicket user={user} />}
+        element={<AdminDashboard user={user} />}
       />  
       <Route
         path="/login"

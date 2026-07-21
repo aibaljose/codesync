@@ -1,4 +1,4 @@
-Task001: Enhance the Landing Page
+Task002: Enhance the Landing Page
 
 Your task is to improve the provided starter.html. 
 1. Change the background color to a light gray.

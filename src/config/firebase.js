@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -8,6 +9,7 @@ import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
   apiKey: "AIzaSyAOQAc7MUNtkMhKcvk5HB-huVS5w1wUOrU",
   authDomain: "codesync-fd195.firebaseapp.com",
+  databaseURL: "https://codesync-fd195-default-rtdb.firebaseio.com",
   projectId: "codesync-fd195",
   storageBucket: "codesync-fd195.firebasestorage.app",
   messagingSenderId: "760852470803",
@@ -19,3 +21,4 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
+export const rtdb = getDatabase(app);
