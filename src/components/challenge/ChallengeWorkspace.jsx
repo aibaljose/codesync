@@ -30,6 +30,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
+  const [activeLeftTab, setActiveLeftTab] = useState('description'); // 'description' | 'files'
 
   // Auto-load the zip from the assigned ticket URL when provided
   useEffect(() => {
@@ -53,90 +54,85 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
   }, [ticketUrl]);
 
   // Shared ZIP parsing logic used by both URL-load and manual upload
-  const parseZip = async (source, fileName) => {
-    const zip = new JSZip();
-    const loadedZip = await zip.loadAsync(source);
+  const parseZip = async (arrayBuffer, fileName) => {
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const files = zip.files;
 
-    let instruction = '';
-    let htmlContent = '';
-    const assets = {};
-    const blobUrls = {};
-    let hasStarter = false;
-    let hasInstruction = false;
-
-    for (const relativePath in loadedZip.files) {
-      const zipEntry = loadedZip.files[relativePath];
-      if (zipEntry.dir) continue;
-      if (relativePath.startsWith('__MACOSX/') || relativePath.split('/').pop().startsWith('.')) continue;
-
-      if (relativePath === 'instruction.txt' || relativePath.endsWith('/instruction.txt')) {
-        instruction = await zipEntry.async('string');
-        hasInstruction = true;
-      } else if (relativePath === 'starter.html' || relativePath.endsWith('/starter.html')) {
-        htmlContent = await zipEntry.async('string');
-        hasStarter = true;
-      } else if (relativePath.includes('assets/')) {
-        const assetPath = relativePath.substring(relativePath.indexOf('assets/'));
-        const blob = await zipEntry.async('blob');
-        const ext = assetPath.split('.').pop().toLowerCase();
-        let mimeType = 'application/octet-stream';
-        if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) mimeType = `image/${ext === 'jpg' ? 'jpeg' : ext === 'svg' ? 'svg+xml' : ext}`;
-        else if (['woff', 'woff2', 'ttf', 'otf'].includes(ext)) mimeType = `font/${ext}`;
-        else if (ext === 'css') mimeType = 'text/css';
-        else if (ext === 'js') mimeType = 'text/javascript';
-        const typedBlob = new Blob([blob], { type: mimeType });
-        assets[assetPath] = typedBlob;
-        blobUrls[assetPath] = URL.createObjectURL(typedBlob);
+    let instructionText = "No instruction file found.";
+    for (const filename of Object.keys(files)) {
+      if (filename.toLowerCase().includes('instruction') || filename.toLowerCase().endsWith('.md') || filename.toLowerCase().endsWith('.txt')) {
+        if (!files[filename].dir) {
+          instructionText = await files[filename].async("string");
+          break;
+        }
       }
     }
 
-    if (!hasStarter || !hasInstruction) {
-      throw new Error('Invalid ZIP format. Must contain instruction.txt and starter.html');
+    let htmlContentText = "<!-- No starter HTML found -->\n<h1>Hello World</h1>";
+    const starterFile = Object.keys(files).find(
+      name => name.toLowerCase().endsWith('.html') && !files[name].dir && !name.toLowerCase().includes('instruction')
+    ) || Object.keys(files).find(name => name.toLowerCase().endsWith('.html') && !files[name].dir);
+
+    if (starterFile) {
+      htmlContentText = await files[starterFile].async("string");
     }
 
-    setChallengeData({ instruction, htmlContent, assets, blobUrls, startTime: Date.now(), fileName });
+    const assetsMap = {};
+    const blobUrlsMap = {};
+
+    for (const [filename, fileObj] of Object.entries(files)) {
+      if (fileObj.dir) continue;
+      if (filename === starterFile || filename.toLowerCase().includes('instruction')) continue;
+
+      const blob = await fileObj.async("blob");
+      assetsMap[filename] = blob;
+      blobUrlsMap[filename] = URL.createObjectURL(blob);
+    }
+
+    setChallengeData({
+      instruction: instructionText,
+      htmlContent: htmlContentText,
+      assets: assetsMap,
+      blobUrls: blobUrlsMap,
+      startTime: Date.now(),
+      fileName: fileName
+    });
   };
+
   const handleZipUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
     setIsLoading(true);
     setError('');
+
     try {
       const arrayBuffer = await file.arrayBuffer();
       await parseZip(arrayBuffer, file.name);
     } catch (err) {
       console.error(err);
-      setError('Failed to extract ZIP: ' + err.message);
+      setError('Error reading ZIP file: ' + err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleHtmlChange = (newContent) => {
+  const handleHtmlChange = (value) => {
     setChallengeData(prev => ({
       ...prev,
-      htmlContent: newContent
+      htmlContent: value
     }));
   };
 
   const handleSubmit = async () => {
     if (!challengeData) return;
     setIsSubmitting(true);
-    setSubmitStatus('Building submission package...');
+    setSubmitStatus('Preparing submission package...');
+    setError('');
 
     try {
       const zip = new JSZip();
-      
-      // Determine taskId from instructions or fallback
-      let taskId = 'Task001';
-      const taskMatch = challengeData.instruction.match(/Task\s*(\d+)/i);
-      if (taskMatch) {
-        taskId = `Task${taskMatch[1].padStart(3, '0')}`;
-      } else {
-        const genericMatch = challengeData.instruction.match(/taskId"?:\s*"?([^"\s]+)/i);
-        if (genericMatch) taskId = genericMatch[1];
-      }
-
+      const taskId = challengeData.fileName ? challengeData.fileName.replace(/\.zip$/i, '') : 'Task001';
       const outputFileName = `${taskId}.html`;
 
       // 1. Add modified HTML
@@ -171,7 +167,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
       const sanitizedName = originalName.trim().replace(/[^a-zA-Z0-9._-]/g, "-");
       const baseName = sanitizedName.toLowerCase().endsWith(".zip") ? sanitizedName : `${sanitizedName}.zip`;
 
-      // 4. Save the zip to Cloudflare R2
+      // 4. Save the zip to Cloudflare R2 inside submitted/ folder
       setSubmitStatus(`Saving "${baseName}" to Cloudflare R2...`);
       const arrayBuffer = await content.arrayBuffer();
       const fileBody = new Uint8Array(arrayBuffer);
@@ -260,11 +256,11 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
     return (
       <div className="challenge-import-screen">
         <div className="import-card">
-          <h2>Challenge Import</h2>
-          <p>Select a challenge ZIP file (e.g., ticket_001.zip) to begin.</p>
+          <h2>Challenge Environment</h2>
+          <p>Select a challenge ZIP package (e.g., ticket_001.zip) to load your interactive IDE.</p>
           
           <label className="file-upload-btn">
-            {isLoading ? 'Loading...' : 'Open Challenge'}
+            {isLoading ? 'Loading Package...' : 'Open Challenge Package'}
             <input 
               type="file" 
               accept=".zip,application/zip" 
@@ -276,52 +272,126 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
 
           {error && <div className="error-msg">{error}</div>}
           
-          <button className="back-btn" onClick={onExit}>Back to Dashboard</button>
+          <button className="back-btn" onClick={onExit}>← Return to Portal</button>
         </div>
       </div>
     );
   }
 
+  const assetCount = Object.keys(challengeData.assets || {}).length + 1;
+
   return (
     <div className="challenge-workspace">
-      <header className="workspace-header">
-        <div className="header-left">
-          <h1>Challenge Environment</h1>
-          <span className="file-name-badge">{challengeData.fileName}</span>
-        </div>
-        <div className="header-right">
-          <button className="exit-btn" onClick={onExit}>Exit</button>
-          <button className="submit-btn" onClick={handleSubmit}>Submit</button>
-        </div>
-      </header>
-      
-      <div className="workspace-main">
-        <FileExplorer assets={challengeData.assets} />
-        
-        <div className="instructions-pane">
-          <div className="pane-header">Instructions</div>
-          <div className="pane-content">
-            <pre>{challengeData.instruction}</pre>
+      {/* Top Material Bar (LeetCode Style) */}
+      <header className="leetcode-navbar">
+        <div className="navbar-left">
+          <button className="leetcode-back-btn" onClick={onExit} title="Exit Workspace">
+            <span>&larr;</span>
+            <span>Problem List</span>
+          </button>
+          <div className="navbar-divider"></div>
+          <div className="workspace-title-pill">
+            <span className="workspace-title-text">Challenge Workspace</span>
+            <span className="file-name-badge">{challengeData.fileName}</span>
           </div>
         </div>
 
-        <div className="editor-pane">
-          <div className="pane-header">starter.html</div>
-          <EditorPane 
-            htmlContent={challengeData.htmlContent} 
-            onChange={handleHtmlChange} 
-          />
+        <div className="navbar-center">
+          <span className="sync-dot"></span>
+          <span>Cloud R2 Synchronized</span>
         </div>
 
-        <div className="preview-pane-container">
-          <div className="pane-header">Live Preview</div>
-          <PreviewPane 
-            htmlContent={challengeData.htmlContent} 
-            blobUrls={challengeData.blobUrls} 
-          />
+        <div className="navbar-right">
+          <button className="leetcode-exit-btn" onClick={onExit}>Exit</button>
+          <button className="leetcode-submit-btn" onClick={handleSubmit}>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            <span>Run &amp; Submit to R2</span>
+          </button>
         </div>
+      </header>
+      
+      {/* Split-Pane Grid (LeetCode Material Panels) */}
+      <div className="leetcode-workspace-main">
+        {/* Left Panel: Description & File Tree */}
+        <section className="leetcode-panel">
+          <div className="panel-tab-bar">
+            <div className="tab-list">
+              <button
+                className={`panel-tab ${activeLeftTab === 'description' ? 'active' : ''}`}
+                onClick={() => setActiveLeftTab('description')}
+              >
+                <span>Description</span>
+              </button>
+              <button
+                className={`panel-tab ${activeLeftTab === 'files' ? 'active' : ''}`}
+                onClick={() => setActiveLeftTab('files')}
+              >
+                <span>Project Files ({assetCount})</span>
+              </button>
+            </div>
+            <div className="panel-tab-right">
+              <span>Markdown</span>
+            </div>
+          </div>
+
+          <div className="panel-body">
+            {activeLeftTab === 'description' ? (
+              <div className="instructions-content">
+                <pre>{challengeData.instruction}</pre>
+              </div>
+            ) : (
+              <FileExplorer assets={challengeData.assets} />
+            )}
+          </div>
+        </section>
+
+        {/* Middle Panel: Monaco Code Editor */}
+        <section className="leetcode-panel">
+          <div className="panel-tab-bar">
+            <div className="tab-list">
+              <button className="panel-tab active">
+                <span>&lt;&gt; starter.html</span>
+              </button>
+            </div>
+            <div className="panel-tab-right">
+              <span className="language-tag">HTML</span>
+            </div>
+          </div>
+
+          <div className="panel-body">
+            <EditorPane 
+              htmlContent={challengeData.htmlContent} 
+              onChange={handleHtmlChange} 
+            />
+          </div>
+        </section>
+
+        {/* Right Panel: Live Preview Output */}
+        <section className="leetcode-panel">
+          <div className="panel-tab-bar">
+            <div className="tab-list">
+              <button className="panel-tab active">
+                <span>Live Preview Output</span>
+              </button>
+            </div>
+            <div className="panel-tab-right">
+              <span className="sync-dot"></span>
+              <span>DOM Ready</span>
+            </div>
+          </div>
+
+          <div className="panel-body">
+            <PreviewPane 
+              htmlContent={challengeData.htmlContent} 
+              blobUrls={challengeData.blobUrls} 
+            />
+          </div>
+        </section>
       </div>
 
+      {/* Submission Modal Overlay */}
       {isSubmitting && (
         <div className="submission-overlay">
           <div className="submission-modal">
