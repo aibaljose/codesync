@@ -15,8 +15,8 @@ const Login = () => {
       console.error(err);
       if (err.code === 'auth/popup-closed-by-user') {
         setError('Sign-in popup was closed before completing. Please try again.');
-      } else if (err.code === 'auth/network-request-failed') {
-        setError('Network error. Please check your internet connection and try again.');
+      } else if (err.code === 'auth/network-request-failed' || err.code === 'auth/internal-error') {
+        setError('Network error. Please check your internet connection or ad blockers, and try again.');
       } else {
         setError('Authentication failed. Please try again.');
       }

@@ -8,12 +8,14 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
+import ChallengeWorkspace from './components/challenge/ChallengeWorkspace'
 
 function App() {
   const [user, setUser] = useState(null)
   const [needsRegistration, setNeedsRegistration] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
   const [count, setCount] = useState(0)
+  const [isChallengeMode, setIsChallengeMode] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -72,6 +74,10 @@ function App() {
     return <Register user={user} onComplete={handleRegistrationComplete} />
   }
 
+  if (isChallengeMode) {
+    return <ChallengeWorkspace onExit={() => setIsChallengeMode(false)} />
+  }
+
   return (
     <>
       <header className="app-header">
@@ -112,6 +118,14 @@ function App() {
           onClick={() => setCount((count) => count + 1)}
         >
           Count is {count}
+        </button>
+        <button
+          type="button"
+          className="counter challenge-btn"
+          onClick={() => setIsChallengeMode(true)}
+          style={{ marginLeft: '1rem', backgroundColor: '#3b82f6' }}
+        >
+          Open Challenge Workspace
         </button>
       </section>
 
