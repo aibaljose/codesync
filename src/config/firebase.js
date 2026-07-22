@@ -7,13 +7,13 @@ import { getDatabase } from "firebase/database";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAOQAc7MUNtkMhKcvk5HB-huVS5w1wUOrU",
-  authDomain: "codesync-fd195.firebaseapp.com",
-  databaseURL: "https://codesync-fd195-default-rtdb.firebaseio.com",
-  projectId: "codesync-fd195",
-  storageBucket: "codesync-fd195.firebasestorage.app",
-  messagingSenderId: "760852470803",
-  appId: "1:760852470803:web:0f37dfc04f88c3a3be73e6"
+  apiKey: import.meta.env.VITE_apiKey,
+  authDomain: import.meta.env.VITE_authDomain,
+  databaseURL: import.meta.env.VITE_databaseURL,
+  projectId: import.meta.env.VITE_projectId,
+  storageBucket: import.meta.env.VITE_storageBucket,
+  messagingSenderId: import.meta.env.VITE_messagingSenderId,
+  appId: import.meta.env.VITE_appId,
 };
 
 // Initialize Firebase

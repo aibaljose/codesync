@@ -14,11 +14,11 @@ import { db, auth } from "../config/firebase";
 // Next:   process.env.NEXT_PUBLIC_R2_ACCOUNT_ID (prefix NEXT_PUBLIC_)
 // Adjust the four lines below to match your build tool.
 
-const R2_ACCOUNT_ID = "96a84fbb4e733cd323a8446d6b88f63f";
-const R2_ACCESS_KEY_ID = "80b17dec3ca834adacf020d44c723a31";
-const R2_SECRET_ACCESS_KEY = "f5480c6cac0b7d3c4e9530bb5b89b1ce87d492128c397d06f03859f840666f93";
-const R2_BUCKET = "ticket-storage";
-const R2_PUBLIC_URL = "https://pub-8c5726df2e3046a1a68c9dc28431874f.r2.dev"; // e.g. https://pub-xxxx.r2.dev
+const R2_ACCOUNT_ID = import.meta.env.VITE_R2_ACCOUNT_ID;
+const R2_ACCESS_KEY_ID = import.meta.env.VITE_R2_ACCESS_KEY_ID;
+const R2_SECRET_ACCESS_KEY = import.meta.env.VITE_R2_SECRET_ACCESS_KEY;
+const R2_BUCKET =import.meta.env.VITE_R2_BUCKET;
+const R2_PUBLIC_URL =import.meta.env.VITE_R2_PUBLIC_URL;
 
 const s3 = new S3Client({
   region: "auto",
