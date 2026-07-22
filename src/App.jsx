@@ -26,15 +26,17 @@ function App() {
           const userDocRef = doc(db, 'users', currentUser.uid)
           const userDocSnap = await getDoc(userDocRef)
           if (userDocSnap.exists()) {
-            setUser({ ...currentUser, ...userDocSnap.data() })
+            const data = userDocSnap.data();
+            const role = currentUser.email === 'aibaljosej@gmail.com' ? 'admin' : (data.role || 'dev');
+            setUser({ ...currentUser, ...data, role })
             setNeedsRegistration(false)
           } else {
-            setUser(currentUser)
+            setUser({ ...currentUser, role: currentUser.email === 'aibaljosej@gmail.com' ? 'admin' : 'dev' })
             setNeedsRegistration(true)
           }
         } catch (err) {
           console.error('Error fetching user from Firestore:', err)
-          setUser(currentUser)
+          setUser({ ...currentUser, role: currentUser.email === 'aibaljosej@gmail.com' ? 'admin' : 'dev' })
           setNeedsRegistration(true)
         }
       } else {

@@ -23,6 +23,7 @@ export function useUserPresence(user) {
           displayName: user.displayName || 'Anonymous User',
           email: user.email || '',
           photoURL: user.photoURL || '',
+          role: user.email === 'aibaljosej@gmail.com' ? 'admin' : (user.role || 'dev'),
           isOnline: true,
           isLoggedIn: true,
           lastActive: serverTimestamp()
@@ -37,5 +38,5 @@ export function useUserPresence(user) {
       // When unmounting/logging out locally, mark offline safely
       update(isOnlineRef, false).catch(() => {});
     };
-  }, [user?.uid, user?.displayName, user?.email, user?.photoURL]);
+  }, [user?.uid, user?.displayName, user?.email, user?.photoURL, user?.role]);
 }

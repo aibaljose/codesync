@@ -3,6 +3,7 @@ import { useState } from "react";
 import { S3Client, PutObjectCommand, PutBucketCorsCommand } from "@aws-sdk/client-s3";
 import { collection, setDoc, doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../config/firebase";
+import Adminticketview from "./Adminticketview";
 
 // --- R2 CONFIG -------------------------------------------------------
 // These values are bundled into your JS and visible to anyone who opens
@@ -172,86 +173,93 @@ export default function AdminUploadTicket() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 border rounded-lg space-y-4">
-      <h2 className="text-lg font-semibold">Upload Ticket Zip</h2>
+    <div className="space-y-10">
+      <div className="max-w-md mx-auto p-6 border border-gray-700 rounded-2xl bg-gray-800/50 shadow-lg space-y-4 text-white font-sans">
+        <h2 className="text-lg font-semibold">Upload Ticket Zip</h2>
 
-      <input
-        type="file"
-        accept=".zip"
-        onChange={handleFileChange}
-        disabled={uploading}
-        className="block w-full text-sm"
-      />
-
-      {file && !uploading && (
-        <p className="text-sm text-gray-600">
-          Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-        </p>
-      )}
-
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          Folder inside <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">tickets/</code> <span className="text-gray-400 font-normal">(optional)</span>
-        </label>
         <input
-          type="text"
-          value={folderName}
-          onChange={(e) => setFolderName(e.target.value)}
-          placeholder="e.g. batch-1 or june-evals"
+          type="file"
+          accept=".zip"
+          onChange={handleFileChange}
           disabled={uploading}
-          className="block w-full text-sm border rounded px-3 py-2"
+          className="block w-full text-sm"
         />
-        <p className="text-xs text-gray-400 mt-1">Folder to create inside <code className="text-xs">tickets/</code> in R2.</p>
-      </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          Storage name <span className="text-gray-400 font-normal">(what it's saved as in the bucket)</span>
-        </label>
-        <input
-          type="text"
-          value={customFileName}
-          onChange={(e) => setCustomFileName(e.target.value)}
-          placeholder={file ? file.name : "e.g. ticket-june-2026"}
-          disabled={uploading}
-          className="block w-full text-sm border rounded px-3 py-2"
-        />
-        <p className="text-xs text-gray-400 mt-1">Leave empty to keep the uploaded zip file name ({file ? file.name : ".zip added automatically if omitted"}).</p>
-      </div>
+        {file && !uploading && (
+          <p className="text-sm text-gray-300">
+            Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+          </p>
+        )}
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-
-      <button
-        onClick={handleUpload}
-        disabled={!file || uploading}
-        className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-      >
-        {uploading ? "Uploading..." : "Upload"}
-      </button>
-
-      {savedUrl && (
-        <div className="text-sm">
-          <p className="text-green-600">Uploaded and saved.</p>
-          <a
-            href={savedUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-blue-600 underline break-all"
-          >
-            {savedUrl}
-          </a>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Folder inside <code className="text-xs bg-gray-900 px-1 py-0.5 rounded text-amber-300">tickets/</code> <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={folderName}
+            onChange={(e) => setFolderName(e.target.value)}
+            placeholder="e.g. batch-1 or june-evals"
+            disabled={uploading}
+            className="block w-full text-sm bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
+          />
+          <p className="text-xs text-gray-400 mt-1">Folder to create inside <code className="text-xs">tickets/</code> in R2.</p>
         </div>
-      )}
 
-      {/* ── Temporary: click once to apply CORS, then remove ── */}
-      <hr />
-      <button
-        onClick={handleSetCors}
-        className="px-4 py-2 bg-gray-700 text-white rounded text-sm"
-      >
-        🔧 Set Bucket CORS (run once)
-      </button>
-      {corsStatus && <p className="text-sm mt-1">{corsStatus}</p>}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Storage name <span className="text-gray-400 font-normal">(what it's saved as in the bucket)</span>
+          </label>
+          <input
+            type="text"
+            value={customFileName}
+            onChange={(e) => setCustomFileName(e.target.value)}
+            placeholder={file ? file.name : "e.g. ticket-june-2026"}
+            disabled={uploading}
+            className="block w-full text-sm bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
+          />
+          <p className="text-xs text-gray-400 mt-1">Leave empty to keep the uploaded zip file name ({file ? file.name : ".zip added automatically if omitted"}).</p>
+        </div>
+
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        <button
+          onClick={handleUpload}
+          disabled={!file || uploading}
+          className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
+        >
+          {uploading ? "Uploading..." : "Upload to R2 & Firestore"}
+        </button>
+
+        {savedUrl && (
+          <div className="text-sm p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-lg">
+            <p className="text-emerald-400 font-semibold mb-1">✅ Uploaded and saved!</p>
+            <a
+              href={savedUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-blue-400 underline break-all text-xs"
+            >
+              {savedUrl}
+            </a>
+          </div>
+        )}
+
+        {/* ── Temporary: click once to apply CORS, then remove ── */}
+        <hr className="border-gray-700" />
+        <button
+          onClick={handleSetCors}
+          className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded text-xs transition-colors"
+        >
+          🔧 Set Bucket CORS (run once)
+        </button>
+        {corsStatus && <p className="text-xs text-amber-300 mt-1">{corsStatus}</p>}
+      </div>
+
+      {/* Ticket Viewer Section */}
+      <div className="border-t border-gray-700/60 pt-6">
+        <Adminticketview />
+      </div>
     </div>
   );
 }
