@@ -133,36 +133,21 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) =
     try {
       const zip = new JSZip();
       const taskId = challengeData.fileName ? challengeData.fileName.replace(/\.zip$/i, '') : 'Task001';
-      const outputFileName = `${taskId}.html`;
+      // 1. Add submission.html
+      zip.file('submission.html', challengeData.htmlContent);
 
-      // 1. Add modified HTML
-      zip.file(outputFileName, challengeData.htmlContent);
+      // 2. Add instruction.txt
+      zip.file('instruction.txt', challengeData.instruction || '');
 
-      // 2. Add assets
-      for (const [path, blob] of Object.entries(challengeData.assets)) {
-        zip.file(path, blob);
+      // 3. Add assets into assets folder (ensure assets/ exists even if empty)
+      zip.folder('assets');
+      for (const [path, blob] of Object.entries(challengeData.assets || {})) {
+        const assetPath = path.startsWith('assets/') ? path : `assets/${path}`;
+        zip.file(assetPath, blob);
       }
 
-      // Ensure starter.html exists in the zip
-      if (!zip.file('starter.html')) {
-        zip.file('submission.html', challengeData.htmlContent);
-      }
-
-      // 3. Add metadata.json
       const duration = Math.floor((Date.now() - challengeData.startTime) / 1000);
       const currentUser = user || auth.currentUser || { uid: 'anonymous', displayName: 'Anonymous User', email: 'anonymous@codesync.dev' };
-      
-      const metadata = {
-        taskId: taskId,
-        submittedAt: new Date().toISOString(),
-        durationSeconds: duration,
-        user: {
-          uid: currentUser.uid,
-          displayName: currentUser.displayName || 'Anonymous User',
-          email: currentUser.email || ''
-        }
-      };
-      zip.file('metadata.json', JSON.stringify(metadata, null, 2));
 
       // Generate zip blob
       const content = await zip.generateAsync({ type: 'blob' });
@@ -364,7 +349,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) =
                 <pre>{challengeData.instruction}</pre>
               </div>
             ) : (
-              <FileExplorer assets={challengeData.assets} />
+              <FileExplorer assets={challengeData.assets} blobUrls={challengeData.blobUrls} />
             )}
           </div>
         </section>
