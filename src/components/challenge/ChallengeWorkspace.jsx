@@ -193,6 +193,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) =
 
       // 5. Store the log to Realtime Database of each user and global dashboard feed
       setSubmitStatus('Logging submission to Realtime Database...');
+      const categoryName = folderPrefix.includes('/') ? folderPrefix.split('/')[1] : 'general';
       const submissionRecord = {
         uid: currentUser.uid,
         displayName: currentUser.displayName || 'Anonymous User',
@@ -202,6 +203,8 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) =
         r2Url: r2PublicUrl,
         r2Key: r2Key,
         taskId: taskId,
+        folderPrefix: folderPrefix,
+        category: categoryName,
         fileSizeBytes: content.size,
         durationSeconds: duration,
         submittedAt: serverTimestamp(),
@@ -217,6 +220,10 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) =
         const globalSubmissionRef = ref(rtdb, `logs/all_submissions/${userSubmissionRef.key}`);
         await set(globalSubmissionRef, { ...submissionRecord, id: userSubmissionRef.key });
 
+        // Save into path-based submission collection in Realtime Database (e.g. submissions/home, submissions/about)
+        const categorySubmissionRef = ref(rtdb, `submissions/${categoryName}/${userSubmissionRef.key}`);
+        await set(categorySubmissionRef, { ...submissionRecord, id: userSubmissionRef.key });
+
         // Update user status for dashboard counters
         const userStatusRef = ref(rtdb, `status/users/${currentUser.uid}`);
         await update(userStatusRef, {
@@ -226,7 +233,9 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) =
           hasSubmitted: true,
           lastSubmissionAt: serverTimestamp(),
           lastSubmissionUrl: r2PublicUrl,
-          lastSubmissionFile: baseName
+          lastSubmissionFile: baseName,
+          lastSubmissionFolder: folderPrefix,
+          lastSubmissionCategory: categoryName
         });
       } catch (dbErr) {
         console.warn('Realtime Database write warning:', dbErr);
