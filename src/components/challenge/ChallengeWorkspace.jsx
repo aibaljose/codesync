@@ -257,6 +257,8 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, rea
       URL.revokeObjectURL(downloadUrl);
 
       setSubmitStatus('✅ Submission complete! Saved to R2 & Realtime Database.');
+      window.open('/'); 
+      
       setTimeout(() => {
         setIsSubmitting(false);
         setSubmitStatus('');
@@ -326,9 +328,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, rea
             </div>
           ) : (
             <button className="leetcode-submit-btn" onClick={handleSubmit}>
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                <path d="M8 5v14l11-7z" />
-              </svg>
+              
               <span>Submit for intagration</span>
             </button>
           )}
@@ -401,8 +401,8 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, rea
               </button>
             </div>
             <div className="panel-tab-right">
-              <span className="sync-dot"></span>
-              <span>DOM Ready</span>
+             
+              
             </div>
           </div>
 

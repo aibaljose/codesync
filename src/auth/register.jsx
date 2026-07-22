@@ -19,11 +19,11 @@ const Register = ({ user, onComplete }) => {
 
     // Username validation
     const usernameRegex = /^[a-zA-Z0-9_]{3,15}$/;
-    if (!usernameRegex.test(username)) {
-      setError('Username must be 3-15 characters and contain only letters, numbers, and underscores.');
-      setLoading(false);
-      return;
-    }
+    // if (!usernameRegex.test(username)) {
+    //   setError('Username must be 3-15 characters and contain only letters, numbers, and underscores.');
+    //   setLoading(false);
+    //   return;
+    // }
 
     try {
       // Check if username is taken
@@ -82,7 +82,7 @@ const Register = ({ user, onComplete }) => {
             </svg>
           </div>
           <h1 className="login-title">Complete Profile</h1>
-          <p className="login-subtitle">Tell us a bit about yourself to complete your CodeSync registration.</p>
+          <p className="login-subtitle">Tell us a bit about yourself to complete your registration.</p>
         </div>
 
         {error && (
@@ -110,30 +110,21 @@ const Register = ({ user, onComplete }) => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">Role</label>
             <div className="username-input-wrapper">
-              <span className="username-prefix">@</span>
+              <span className="username-prefix"></span>
               <input
                 type="text"
                 id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value.trim())}
+                value={"Dev"}
+                onChange={(e) => setUsername("dev")}
                 required
                 placeholder="username"
               />
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="bio">Bio (Optional)</label>
-            <textarea
-              id="bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell others what you do..."
-              rows="3"
-            />
-          </div>
+         
 
           <div className="button-group">
             <button type="submit" className="submit-btn" disabled={loading}>

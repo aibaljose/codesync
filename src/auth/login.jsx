@@ -29,16 +29,15 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
+          <div className="flex">
+         
           <div className="app-logo">
-            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1" />
-              <path d="M18 8h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4" />
-              <line x1="10" y1="12" x2="22" y2="12" />
-              <polyline points="15 9 18 12 15 15" />
-            </svg>
+            <img src="https://www.ajce.in/home/images/ajcelogo_2.jpg" alt="" />
           </div>
-          <h1 className="login-title">CodeSync</h1>
-          <p className="login-subtitle">Connect, collaborate, and synchronize your code in real-time.</p>
+          </div>
+          
+          <h1 className="login-title">welcome DEVs</h1>
+          <p className="login-subtitle">Join the Official Record-Breaking Web Development Challenge and become part of an extraordinary achievement</p>
         </div>
 
         {error && (

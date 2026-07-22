@@ -190,6 +190,7 @@
 .login-container {
   flex-grow: 1;
   display: flex;
+  background-color: #e9e8e8;
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
@@ -198,12 +199,13 @@
 .login-card {
   width: 100%;
   max-width: 440px;
-  background: var(--bg);
+ background-color: white;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 48px 40px;
-  box-shadow: var(--shadow);
+  /* box-shadow: var(--shadow); */
   display: flex;
+  color: black;
   flex-direction: column;
   align-items: stretch;
   gap: 32px;
@@ -225,7 +227,7 @@
   width: 80px;
   height: 80px;
   background: var(--accent-bg);
-  border: 1px solid var(--accent-border);
+  /* border: 1px solid var(--accent-border); */
   border-radius: 20px;
   margin-bottom: 8px;
   transition: transform 0.3s ease;
@@ -237,6 +239,7 @@
 
 .login-title {
   margin: 0;
+  color: #000000;
   font-size: 32px;
   font-weight: 600;
   letter-spacing: -1px;
@@ -246,7 +249,7 @@
   margin: 0;
   font-size: 15px;
   line-height: 1.5;
-  color: var(--text);
+ color: #999797;
 }
 
 .login-error {
@@ -414,6 +417,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  color: #000000;
   text-align: left;
 }
 
@@ -426,7 +430,7 @@
 .form-group label {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-h);
+  color: black;
 }
 
 .form-group input[type="text"],
@@ -436,8 +440,8 @@
   padding: 12px 14px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text-h);
+  /* background: var(--bg); */
+  /* color: var(--text-h); */
   outline: none;
   transition: all 0.2s ease;
   box-sizing: border-box;
@@ -454,7 +458,7 @@
   align-items: center;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg);
+  /* background: var(--bg); */
   transition: all 0.2s ease;
 
   &:focus-within {

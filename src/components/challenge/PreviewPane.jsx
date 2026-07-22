@@ -54,10 +54,10 @@ const PreviewPane = ({ htmlContent, blobUrls }) => {
   };
 
   const sizes = [
-    { id: 'full', label: '🖥️ 100%', title: 'Full Desktop Viewport' },
-    { id: 'tablet', label: '💻 Tablet', title: '768px Width' },
-    { id: 'mobile', label: '📱 Mobile', title: '375px Width' },
-    { id: 'small', label: '📱 Small', title: '320px Width' },
+    { id: 'full', label: '100%', title: 'Full Desktop Viewport' },
+    { id: 'tablet', label: 'Tablet', title: '768px Width' },
+    { id: 'mobile', label: 'Mobile', title: '375px Width' },
+    { id: 'small', label: 'Small', title: '320px Width' },
   ];
 
   return (
@@ -88,7 +88,7 @@ const PreviewPane = ({ htmlContent, blobUrls }) => {
             className="flex items-center gap-1 rounded bg-[#2a2a2a] px-2 py-1 text-[#a0a0a0] hover:bg-[#333] hover:text-white transition"
             title="Reload Preview Frame"
           >
-            <span>🔄</span>
+            <span></span>
             <span>Refresh</span>
           </button>
           <button

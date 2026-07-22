@@ -125,7 +125,7 @@ export default function Home({ user }) {
 
 
   return (
-    <div className="bg-gray-900 min-h-screen text-white font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen text-white font-sans bg-red  selection:text-white">
       {/* Header & Navigation */}
       <header className="absolute inset-x-0 top-0 z-50">
         <nav
@@ -155,13 +155,13 @@ export default function Home({ user }) {
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
             <p className="-mx-3 block w-full text-left rounded-lg px-3 py-2 text-base/7 font-semibold text-white bg-transparent border-0">
-              Beginners
+              
             </p>
             <p className="-mx-3 block w-full text-left rounded-lg px-3 py-2 text-base/7 font-semibold text-white bg-transparent border-0">
-              Professionals
+              
             </p>
             <p className="-mx-3 block w-full text-left rounded-lg px-3 py-2 text-base/7 font-semibold text-white bg-transparent border-0">
-              Architects
+              
             </p>
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-x-4">
@@ -183,7 +183,7 @@ export default function Home({ user }) {
               onClick={handleSignOut}
               className="text-sm/6 font-semibold text-gray-300 hover:text-white transition-colors bg-transparent border-0 cursor-pointer"
             >
-              Sign out <span aria-hidden="true">&rarr;</span>
+              Sign out <span aria-hidden="true"></span>
             </button>
           </div>
         </nav>
@@ -243,28 +243,17 @@ export default function Home({ user }) {
 
       {/* Hero Section with Polygon Blurs */}
       <div className="relative isolate px-6 pt-14 lg:px-8">
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80 pointer-events-none"
-        >
-          <div
-            style={{
-              clipPath:
-                "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-            }}
-            className="relative left-[calc(50%-11rem)] aspect-1155/678 w-144.5 -translate-x-1/2 rotate-30 bg-linear-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-288.75"
-          />
-        </div>
+      
 
         <div className="mx-auto max-w-3xl py-32 sm:py-48 lg:py-22">
           <div className="text-center" id="workspace">
             <h1 className="text-5xl font-semibold tracking-tight text-balance text-white sm:text-7xl">
-             Build an Entire Website in Just 60 Minutes
+             Hey, {displayName}<br />
             </h1>
             <p className="mt-8 text-lg font-medium text-pretty text-gray-400 sm:text-xl/8">
-              Welcome back, {displayName}.<br />
+             Build an Entire Website in Just 60 Minutes
               <p className="text-lg font-medium text-pretty text-gray-400">
-                Join 60+ developers for a fast-paced, hands-on live coding session where we'll design, build, and deploy a complete modern website from scratch—all in just one hour.
+                Join 60+ developers for a fast-paced, hands-on live coding session where we'll design, build, and deploy a complete modern website from scratch all in just one hour.
               </p>
             </p>
 
@@ -312,7 +301,7 @@ export default function Home({ user }) {
                       rel="noreferrer"
                       className="text-sm/6 font-semibold text-white hover:text-gray-300 transition-colors"
                     >
-                      Download Archive <span aria-hidden="true">→</span>
+                       <span aria-hidden="true"></span>
                     </a>
                   ) : (
                     <button
