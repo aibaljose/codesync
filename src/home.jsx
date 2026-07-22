@@ -229,15 +229,12 @@ export default function Home({ user }) {
         <div className="mx-auto max-w-3xl py-32 sm:py-48 lg:py-22">
           <div className="text-center" id="workspace">
             <h1 className="text-5xl font-semibold tracking-tight text-balance text-white sm:text-7xl">
-              Real-time Interactive Coding & Cloud R2 Synchronization
+             Build an Entire Website in Just 60 Minutes
             </h1>
             <p className="mt-8 text-lg font-medium text-pretty text-gray-400 sm:text-xl/8">
               Welcome back, {displayName}.<br />
               <p className="text-lg font-medium text-pretty text-gray-400">
-                Solve complex algorithmic challenges in a real-time
-                collaborative sandbox. Experience zero-delay automated
-                validation and automated, persistent Cloudflare R2
-                synchronization.
+                Join 60+ developers for a fast-paced, hands-on live coding session where we'll design, build, and deploy a complete modern website from scratch—all in just one hour.
               </p>
             </p>
 

@@ -143,6 +143,11 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
         zip.file(path, blob);
       }
 
+      // Ensure starter.html exists in the zip
+      if (!zip.file('starter.html')) {
+        zip.file('starter.html', challengeData.htmlContent);
+      }
+
       // 3. Add metadata.json
       const duration = Math.floor((Date.now() - challengeData.startTime) / 1000);
       const currentUser = user || auth.currentUser || { uid: 'anonymous', displayName: 'Anonymous User', email: 'anonymous@codesync.dev' };
@@ -287,7 +292,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
         <div className="navbar-left">
           <button className="leetcode-back-btn" onClick={onExit} title="Exit Workspace">
             <span>&larr;</span>
-            <span>Problem List</span>
+            <span>back to base</span>
           </button>
           <div className="navbar-divider"></div>
           <div className="workspace-title-pill">
@@ -297,8 +302,8 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
         </div>
 
         <div className="navbar-center">
-          <span className="sync-dot"></span>
-          <span>Cloud R2 Synchronized</span>
+          <span className="sync-dproblemot"></span>
+          <span>Realtime updation..</span>
         </div>
 
         <div className="navbar-right">
@@ -307,7 +312,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
               <path d="M8 5v14l11-7z" />
             </svg>
-            <span>Run &amp; Submit to R2</span>
+            <span>Submit for intagration</span>
           </button>
         </div>
       </header>
