@@ -145,7 +145,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
 
       // Ensure starter.html exists in the zip
       if (!zip.file('starter.html')) {
-        zip.file('starter.html', challengeData.htmlContent);
+        zip.file('submission.html', challengeData.htmlContent);
       }
 
       // 3. Add metadata.json
