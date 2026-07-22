@@ -16,23 +16,52 @@ export default function Home({ user }) {
   const [ticketLoading, setTicketLoading] = useState(true)
   const navigate = useNavigate()
 
+  const effectiveRole = user?.email === 'aibaljosej@gmail.com' ? 'admin' : (user?.role || 'dev')
+
   useEffect(() => {
     if (!user?.uid) return
+
+    if (effectiveRole === 'admin' || effectiveRole === 'intagrater') {
+      if (user?.ticketId) {
+        const unassignOldTicket = async () => {
+          try {
+            const ticketSnap = await getDocs(
+              query(collection(db, 'tickets'), where('__name__', '==', user.ticketId))
+            )
+            if (!ticketSnap.empty) {
+              await runTransaction(db, async (tx) => {
+                tx.update(ticketSnap.docs[0].ref, { assignedTo: null })
+                tx.update(doc(db, 'users', user.uid), { ticketId: null })
+              })
+            }
+          } catch (err) {
+            console.warn('Could not unassign ticket for non-dev role:', err)
+          }
+        }
+        unassignOldTicket()
+      }
+      setTicketLoading(false)
+      return
+    }
 
     const assignTicket = async () => {
       setTicketLoading(true)
       try {
         const userRef = doc(db, 'users', user.uid)
 
-        // If the user already has a ticket assigned, just fetch and show it
+        // If the user already has a ticket assigned, verify it is still assigned to them
         if (user.ticketId) {
           const ticketSnap = await getDocs(
             query(collection(db, 'tickets'), where('__name__', '==', user.ticketId))
           )
           if (!ticketSnap.empty) {
-            setAssignedTicket({ id: user.ticketId, ...ticketSnap.docs[0].data() })
+            const ticketData = ticketSnap.docs[0].data();
+            if (ticketData.assignedTo === user.uid) {
+              setAssignedTicket({ id: user.ticketId, ...ticketData });
+              return;
+            }
           }
-          return
+          // If ticket is unassigned/reset by admin, fall through to reallocate below
         }
 
         // First login: fetch all unassigned tickets
@@ -68,7 +97,7 @@ export default function Home({ user }) {
     }
 
     assignTicket()
-  }, [user?.uid])
+  }, [user?.uid, effectiveRole])
 
   const handleSignOut = async () => {
     try {
@@ -239,33 +268,61 @@ export default function Home({ user }) {
               </p>
             </p>
 
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <button
-                onClick={() => setIsChallengeMode(true)}
-                disabled={ticketLoading && !assignedTicket}
-                className="rounded-md bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-500/25"
-              >
-                {ticketLoading
-                  ? "Allocating Workspace..."
-                  : "Launch Challenge Workspace"}
-              </button>
-
-              {assignedTicket?.url ? (
-                <a
-                  href={assignedTicket.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm/6 font-semibold text-white hover:text-gray-300 transition-colors"
-                >
-                  Download Archive <span aria-hidden="true">→</span>
-                </a>
+            <div className="mt-10 flex flex-col items-center justify-center gap-4">
+              {effectiveRole === 'admin' ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 text-sm font-medium">
+                    🛡️ Administrator Account (No tickets assigned)
+                  </div>
+                  <button
+                    onClick={() => navigate("/admin")}
+                    className="rounded-md bg-linear-to-r from-red-600 to-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-red-500/25 hover:from-red-500 hover:to-indigo-500 transition-all hover:-translate-y-0.5 border-0 cursor-pointer"
+                  >
+                    🚀 Open Admin Control Center →
+                  </button>
+                </div>
+              ) : effectiveRole === 'intagrater' ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-sm font-medium">
+                    🔧 Integrater Account (No challenge ticket assigned)
+                  </div>
+                  <button
+                    onClick={() => navigate("/admin")}
+                    className="rounded-md bg-amber-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-amber-500/25 hover:bg-amber-500 transition-all hover:-translate-y-0.5 border-0 cursor-pointer"
+                  >
+                    🔍 Inspect & Review Submissions →
+                  </button>
+                </div>
               ) : (
-                <button
-                  onClick={() => navigate("/admin")}
-                  className="text-sm/6 font-semibold text-white hover:text-gray-300 transition-colors bg-transparent border-0 cursor-pointer"
-                >
-                  View Control Center <span aria-hidden="true">→</span>
-                </button>
+                <div className="flex items-center justify-center gap-x-6">
+                  <button
+                    onClick={() => setIsChallengeMode(true)}
+                    disabled={ticketLoading && !assignedTicket}
+                    className="rounded-md bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-500/25"
+                  >
+                    {ticketLoading
+                      ? "Allocating Workspace..."
+                      : "Launch Challenge Workspace"}
+                  </button>
+
+                  {assignedTicket?.url ? (
+                    <a
+                      href={assignedTicket.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm/6 font-semibold text-white hover:text-gray-300 transition-colors"
+                    >
+                      Download Archive <span aria-hidden="true">→</span>
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => navigate("/admin")}
+                      className="text-sm/6 font-semibold text-white hover:text-gray-300 transition-colors bg-transparent border-0 cursor-pointer"
+                    >
+                      View Control Center <span aria-hidden="true">→</span>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

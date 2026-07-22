@@ -46,6 +46,7 @@ const Register = ({ user, onComplete }) => {
         email: user.email,
         photoURL: user.photoURL || '',
         bio,
+        role: user.email === 'aibaljosej@gmail.com' ? 'admin' : 'dev',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };

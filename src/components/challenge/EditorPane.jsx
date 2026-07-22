@@ -1,7 +1,7 @@
 import React from 'react';
 import Editor from '@monaco-editor/react';
 
-const EditorPane = ({ htmlContent, onChange }) => {
+const EditorPane = ({ htmlContent, onChange, readOnly = false }) => {
   return (
     <div className="editor-container">
       <Editor
@@ -19,6 +19,7 @@ const EditorPane = ({ htmlContent, onChange }) => {
           formatOnType: true,
           lineNumbers: 'on',
           scrollBeyondLastLine: false,
+          readOnly: readOnly,
         }}
       />
     </div>

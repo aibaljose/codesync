@@ -24,7 +24,7 @@ const s3 = new S3Client({
   },
 });
 
-const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) => {
+const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, readOnly = false }) => {
   const [challengeData, setChallengeData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,6 +49,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) =
       } finally {
         setIsLoading(false);
       }
+      
     };
     loadFromUrl();
   }, [ticketUrl]);
@@ -303,28 +304,34 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) =
         <div className="navbar-left">
           <button className="leetcode-back-btn" onClick={onExit} title="Exit Workspace">
             <span>&larr;</span>
-            <span>back to base</span>
+            <span>{readOnly ? 'back to tickets' : 'back to base'}</span>
           </button>
           <div className="navbar-divider"></div>
           <div className="workspace-title-pill">
-            <span className="workspace-title-text">Challenge Workspace</span>
+            <span className="workspace-title-text">{readOnly ? 'Admin Ticket Preview' : 'Challenge Workspace'}</span>
             <span className="file-name-badge">{challengeData.fileName}</span>
           </div>
         </div>
 
         <div className="navbar-center">
-          <span className="sync-dproblemot"></span>
-          <span>Realtime updation..</span>
+          <span className="sync-dproblemot" style={readOnly ? { backgroundColor: '#f59e0b', boxShadow: '0 0 8px #f59e0b' } : {}}></span>
+          <span>{readOnly ? 'Read-Only Inspection Mode' : 'Realtime updation..'}</span>
         </div>
 
         <div className="navbar-right">
           <button className="leetcode-exit-btn" onClick={onExit}>Exit</button>
-          <button className="leetcode-submit-btn" onClick={handleSubmit}>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            <span>Submit for intagration</span>
-          </button>
+          {readOnly ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '6px', color: '#fcd34d', fontSize: '12px', fontWeight: '600' }}>
+              <span>🔒 View Only (No Submission)</span>
+            </div>
+          ) : (
+            <button className="leetcode-submit-btn" onClick={handleSubmit}>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span>Submit for intagration</span>
+            </button>
+          )}
         </div>
       </header>
       
@@ -380,6 +387,7 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) =
             <EditorPane 
               htmlContent={challengeData.htmlContent} 
               onChange={handleHtmlChange} 
+              readOnly={readOnly}
             />
           </div>
         </section>
