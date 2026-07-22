@@ -24,7 +24,7 @@ const s3 = new S3Client({
   },
 });
 
-const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
+const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user }) => {
   const [challengeData, setChallengeData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -172,11 +172,28 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, user }) => {
       const sanitizedName = originalName.trim().replace(/[^a-zA-Z0-9._-]/g, "-");
       const baseName = sanitizedName.toLowerCase().endsWith(".zip") ? sanitizedName : `${sanitizedName}.zip`;
 
-      // 4. Save the zip to Cloudflare R2 inside submitted/ folder
-      setSubmitStatus(`Saving "${baseName}" to Cloudflare R2...`);
+      // Determine target submission folder based on ticket number (e.g. 1-10 -> submitted/home)
+      let folderPrefix = 'submitted';
+      let num = parseInt(ticketId, 10);
+      if (isNaN(num)) {
+        const match = (taskId || challengeData.fileName || ticketName || '').match(/\d+/);
+        if (match) {
+          num = parseInt(match[0], 10);
+        }
+      }
+      if (!isNaN(num)) {
+        if (num >= 1 && num <= 10) folderPrefix = 'submitted/home';
+        else if (num >= 11 && num <= 20) folderPrefix = 'submitted/about';
+        else if (num >= 21 && num <= 30) folderPrefix = 'submitted/schedule';
+        else if (num >= 31 && num <= 40) folderPrefix = 'submitted/participate';
+        else if (num >= 41 && num <= 50) folderPrefix = 'submitted/register';
+      }
+
+      // 4. Save the zip to Cloudflare R2 inside appropriate submitted/ folder
+      setSubmitStatus(`Saving "${baseName}" to Cloudflare R2 (${folderPrefix})...`);
       const arrayBuffer = await content.arrayBuffer();
       const fileBody = new Uint8Array(arrayBuffer);
-      const r2Key = `submitted/${baseName}`;
+      const r2Key = `${folderPrefix}/${baseName}`;
 
       await s3.send(
         new PutObjectCommand({

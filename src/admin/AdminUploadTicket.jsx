@@ -34,6 +34,7 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 export default function AdminUploadTicket() {
   const [file, setFile] = useState(null);
   const [customFileName, setCustomFileName] = useState("");
+  const [folderName, setFolderName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [savedUrl, setSavedUrl] = useState("");
@@ -90,20 +91,33 @@ export default function AdminUploadTicket() {
       setError("Choose a zip file first.");
       return;
     }
-    if (!customFileName.trim()) {
-      setError("Please enter a name for the file.");
-      return;
-    }
-
     setUploading(true);
     setError("");
     setSavedUrl("");
 
     try {
-      // Build the storage key using the admin-provided name (sanitized, .zip enforced)
-      const sanitized = customFileName.trim().replace(/[^a-zA-Z0-9._-]/g, "-");
+      // Build the storage key using the admin-provided name (or default to uploaded zip file name)
+      const rawName = customFileName.trim() || file.name;
+      const sanitized = rawName.replace(/[^a-zA-Z0-9._-]/g, "-");
       const baseName = sanitized.toLowerCase().endsWith(".zip") ? sanitized : `${sanitized}.zip`;
-      const key = `tickets/${baseName}`;
+
+      const cleanFolder = folderName.trim().replace(/^[\/]+|[\/]+$/g, "").replace(/[^a-zA-Z0-9._/-]/g, "-");
+      const key = cleanFolder ? `tickets/${cleanFolder}/${baseName}` : `tickets/${baseName}`;
+
+      // If folder name is provided, create the folder object in R2 inside tickets
+      if (cleanFolder) {
+        try {
+          await s3.send(
+            new PutObjectCommand({
+              Bucket: R2_BUCKET,
+              Key: `tickets/${cleanFolder}/`,
+              Body: new Uint8Array(0),
+            })
+          );
+        } catch (folderErr) {
+          console.warn("Folder creation warning:", folderErr);
+        }
+      }
 
       // Convert File → ArrayBuffer → Uint8Array so AWS SDK v3 can handle it in the browser.
       // Passing a raw File object causes "readableStream.getReader is not a function"
@@ -135,6 +149,7 @@ export default function AdminUploadTicket() {
       await setDoc(doc(db, "tickets", String(nextId)), {
         fileName: file.name,
         storedAs: baseName,
+        folder: cleanFolder || null,
         fileSize: file.size,
         url: publicUrl,
         key,
@@ -147,6 +162,7 @@ export default function AdminUploadTicket() {
       setSavedUrl(publicUrl);
       setFile(null);
       setCustomFileName("");
+      setFolderName("");
     } catch (err) {
       console.error("Upload failed:", err);
       setError(err.message || "Upload failed.");
@@ -175,17 +191,32 @@ export default function AdminUploadTicket() {
 
       <div>
         <label className="block text-sm font-medium mb-1">
+          Folder inside <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">tickets/</code> <span className="text-gray-400 font-normal">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={folderName}
+          onChange={(e) => setFolderName(e.target.value)}
+          placeholder="e.g. batch-1 or june-evals"
+          disabled={uploading}
+          className="block w-full text-sm border rounded px-3 py-2"
+        />
+        <p className="text-xs text-gray-400 mt-1">Folder to create inside <code className="text-xs">tickets/</code> in R2.</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">
           Storage name <span className="text-gray-400 font-normal">(what it's saved as in the bucket)</span>
         </label>
         <input
           type="text"
           value={customFileName}
           onChange={(e) => setCustomFileName(e.target.value)}
-          placeholder="e.g. ticket-june-2026"
+          placeholder={file ? file.name : "e.g. ticket-june-2026"}
           disabled={uploading}
           className="block w-full text-sm border rounded px-3 py-2"
         />
-        <p className="text-xs text-gray-400 mt-1">.zip will be added automatically if omitted.</p>
+        <p className="text-xs text-gray-400 mt-1">Leave empty to keep the uploaded zip file name ({file ? file.name : ".zip added automatically if omitted"}).</p>
       </div>
 
       {error && <p className="text-red-600 text-sm">{error}</p>}

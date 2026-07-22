@@ -86,6 +86,7 @@ export default function Home({ user }) {
         onExit={() => setIsChallengeMode(false)}
         ticketUrl={assignedTicket?.url}
         ticketName={assignedTicket?.storedAs || assignedTicket?.fileName}
+        ticketId={assignedTicket?.id}
       />
     )
   }
