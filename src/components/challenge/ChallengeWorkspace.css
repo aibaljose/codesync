@@ -46,19 +46,19 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.75rem;
-  background-color: #2cbb5d;
+  background-color: #523bfd;
   color: white;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
   font-size: 0.95rem;
   transition: background-color 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(44, 187, 93, 0.3);
+  box-shadow: 0 2px 8px rgba(81, 121, 251, 0.3);
 }
 
 .file-upload-btn:hover {
-  background-color: #229948;
-  box-shadow: 0 4px 12px rgba(44, 187, 93, 0.45);
+  background-color: #5945eb;
+  box-shadow: 0 4px 12px rgba(91, 125, 239, 0.3);
 }
 
 .file-upload-btn[disabled] {
@@ -340,6 +340,7 @@
   color: #eff1f6;
   font-size: 0.9rem;
   line-height: 1.65;
+	text-align: left;
 }
 
 .instructions-content pre {
@@ -356,6 +357,8 @@
   border-right: none !important;
   background-color: transparent !important;
   flex: 1;
+	text-align: left;
+	overflow-y: auto;
 }
 
 .explorer-header {
