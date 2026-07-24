@@ -1,0 +1,47 @@
+@startuml
+skinparam shadowing false
+
+node "User Device" <<Mobile>> {
+  artifact "SportVerse AI App\n(React Native)" as App
+}
+
+node "Cloud Infrastructure (AWS/GCP)" {
+  node "Web Server" <<Node.js/Express>> {
+    component "API Gateway"
+    component "Auth Service"
+    component "Booking Service"
+    component "AI Service"
+  }
+}
+
+database "MongoDB Atlas" <<Database Server>> {
+  artifact "User DB"
+  artifact "Booking DB"
+  artifact "Marketplace DB"
+}
+
+cloud "Google Cloud" {
+  component "Gemini API"
+  component "Google Maps API"
+}
+
+cloud "External Services" {
+  component "Razorpay API"
+  component "Firebase FCM"
+  component "Android Health Connect"
+}
+
+App <--> "API Gateway" : HTTPS/REST
+"API Gateway" --> "Auth Service"
+"API Gateway" --> "Booking Service"
+"API Gateway" --> "AI Service"
+
+"Auth Service" --> "MongoDB Atlas" : TCP/IP
+"Booking Service" --> "MongoDB Atlas" : TCP/IP
+
+"AI Service" <--> "Gemini API" : HTTPS
+"Booking Service" <--> "Razorpay API" : HTTPS
+"API Gateway" <--> "Firebase FCM" : HTTPS
+App <--> "Google Maps API" : HTTPS
+App <--> "Android Health Connect" : Local API
+@enduml

@@ -1,0 +1,624 @@
+@startuml
+skinparam style strictuml
+skinparam class {
+    BackgroundColor White
+    ArrowColor Black
+    BorderColor Black
+}
+skinparam shadowing false
+skinparam roundcorner 5
+
+package Authentication {
+    abstract class User {
+        - userId : String
+        - email : String
+        - passwordHash : String
+        - isVerified : Boolean
+        - createdAt : Date
+        - updatedAt : Date
+        + User(email: String, passwordHash: String)
+        + login() : Boolean
+        + logout() : void
+        + register() : void
+        + resetPassword() : void
+    }
+
+    class Player {
+        - playerId : String
+        - experienceLevel : String
+        - preferredSports : List<String>
+        + Player(...)
+        + bookGround() : void
+        + cancelBooking() : void
+        + syncHealthData() : void
+        + joinTournament() : void
+        + createPost() : void
+    }
+
+    class GroundOwner {
+        - ownerId : String
+        - businessName : String
+        - taxId : String
+        + GroundOwner(...)
+        + registerGround() : void
+        + manageSlots() : void
+        + viewEarnings() : void
+    }
+
+    class ShopOwner {
+        - shopOwnerId : String
+        - storeName : String
+        - storeLicense : String
+        + ShopOwner(...)
+        + addProduct() : void
+        + fulfillOrder() : void
+    }
+
+    class Admin {
+        - adminId : String
+        - permissions : List<String>
+        + Admin(...)
+        + resolveDispute() : void
+        + generateReports() : void
+    }
+    
+    class Role {
+        - roleId : String
+        - roleName : String
+        + Role(...)
+        + getPermissions() : List<String>
+    }
+
+    class Profile {
+        - profileId : String
+        - firstName : String
+        - lastName : String
+        - phone : String
+        - avatarUrl : String
+        + Profile(...)
+        + updateProfile() : void
+    }
+
+    class Address {
+        - addressId : String
+        - street : String
+        - city : String
+        - state : String
+        - zipCode : String
+        - latitude : Double
+        - longitude : Double
+        + Address(...)
+        + getCoordinates() : String
+    }
+
+    class Session {
+        - sessionId : String
+        - deviceId : String
+        - ipAddress : String
+        - loginTime : Date
+        + Session(...)
+        + invalidate() : void
+    }
+
+    class RefreshToken {
+        - tokenId : String
+        - token : String
+        - expiresAt : Date
+        + RefreshToken(...)
+        + isExpired() : Boolean
+        + revoke() : void
+    }
+}
+
+User <|-- Player
+User <|-- GroundOwner
+User <|-- ShopOwner
+User <|-- Admin
+
+User "1" *-- "1" Profile : has >
+User "1" *-- "1..*" Address : has >
+User "1" *-- "0..*" Session : has >
+User "1" *-- "1" Role : assigned >
+Session "1" *-- "0..1" RefreshToken : uses >
+
+package Booking {
+    class Ground {
+        - groundId : String
+        - name : String
+        - description : String
+        - basePrice : Double
+        - isActive : Boolean
+        + Ground(...)
+        + checkAvailability() : Boolean
+        + addFacility() : void
+    }
+
+    class GroundImage {
+        - imageId : String
+        - imageUrl : String
+        - isPrimary : Boolean
+        + GroundImage(...)
+    }
+
+    class GroundFacility {
+        - facilityId : String
+        - name : String
+        - description : String
+        + GroundFacility(...)
+    }
+
+    class GroundReview {
+        - reviewId : String
+        - comment : String
+        - datePosted : Date
+        + GroundReview(...)
+    }
+
+    class GroundRating {
+        - ratingId : String
+        - score : Float
+        + GroundRating(...)
+        + calculateAverage() : Float
+    }
+
+    class SportCategory {
+        - categoryId : String
+        - name : String
+        + SportCategory(...)
+    }
+
+    class Slot {
+        - slotId : String
+        - startTime : Date
+        - endTime : Date
+        - price : Double
+        - isBooked : Boolean
+        + Slot(...)
+        + markBooked() : void
+    }
+
+    class Booking {
+        - bookingId : String
+        - bookingDate : Date
+        - status : String
+        - totalAmount : Double
+        + Booking(...)
+        + confirmBooking() : void
+    }
+
+    class BookingHistory {
+        - historyId : String
+        - action : String
+        - timestamp : Date
+        + BookingHistory(...)
+    }
+
+    class QRCode {
+        - qrId : String
+        - qrData : String
+        - isValid : Boolean
+        + QRCode(...)
+        + validate() : Boolean
+    }
+}
+
+GroundOwner "1" -- "0..*" Ground : owns >
+Ground "1" *-- "1..*" GroundImage : has >
+Ground "1" *-- "0..*" GroundFacility : has >
+Ground "1" *-- "0..*" GroundReview : contains >
+Ground "1" *-- "1" GroundRating : has >
+Ground "1" -- "1..*" SportCategory : supports >
+Ground "1" *-- "0..*" Slot : contains >
+Slot "1" -- "0..1" Booking : reserved in >
+Booking "1" *-- "1" QRCode : generates >
+Booking "1" *-- "0..*" BookingHistory : tracks >
+Player "1" -- "0..*" Booking : creates >
+
+package Marketplace {
+    class Category {
+        - categoryId : String
+        - name : String
+        + Category(...)
+    }
+
+    class Product {
+        - productId : String
+        - name : String
+        - description : String
+        - price : Double
+        - stockQuantity : Integer
+        + Product(...)
+        + updateStock() : void
+    }
+
+    class ProductImage {
+        - imageId : String
+        - imageUrl : String
+        + ProductImage(...)
+    }
+
+    class Cart {
+        - cartId : String
+        - totalValue : Double
+        + Cart(...)
+        + checkout() : void
+    }
+
+    class CartItem {
+        - cartItemId : String
+        - quantity : Integer
+        + CartItem(...)
+    }
+
+    class Wishlist {
+        - wishlistId : String
+        + Wishlist(...)
+        + addItem() : void
+    }
+
+    class Order {
+        - orderId : String
+        - orderDate : Date
+        - status : String
+        - totalAmount : Double
+        + Order(...)
+        + placeOrder() : void
+    }
+
+    class OrderItem {
+        - orderItemId : String
+        - quantity : Integer
+        - unitPrice : Double
+        + OrderItem(...)
+    }
+
+    class Payment {
+        - paymentId : String
+        - amount : Double
+        - method : String
+        - status : String
+        + Payment(...)
+        + makePayment() : Boolean
+    }
+
+    class Invoice {
+        - invoiceId : String
+        - issueDate : Date
+        - pdfUrl : String
+        + Invoice(...)
+    }
+
+    class Delivery {
+        - deliveryId : String
+        - trackingNumber : String
+        - status : String
+        + Delivery(...)
+    }
+}
+
+ShopOwner "1" -- "0..*" Product : sells >
+Product "1..*" -- "1" Category : belongs to >
+Product "1" *-- "1..*" ProductImage : has >
+Player "1" -- "1" Cart : owns >
+Player "1" -- "1" Wishlist : owns >
+Wishlist "1" -- "0..*" Product : contains >
+Cart "1" *-- "0..*" CartItem : contains >
+CartItem "0..*" -- "1" Product : references >
+Player "1" -- "0..*" Order : places >
+Order "1" *-- "1..*" OrderItem : contains >
+OrderItem "0..*" -- "1" Product : references >
+Order "1" -- "1" Payment : uses >
+Order "1" -- "0..1" Invoice : generates >
+Order "1" -- "0..1" Delivery : requires >
+
+package Tournament {
+    class Tournament {
+        - tournamentId : String
+        - name : String
+        - startDate : Date
+        - endDate : Date
+        - prizePool : Double
+        + Tournament(...)
+        + createTournament() : void
+    }
+
+    class Team {
+        - teamId : String
+        - name : String
+        - logoUrl : String
+        + Team(...)
+    }
+
+    class TeamMember {
+        - memberId : String
+        - roleInTeam : String
+        + TeamMember(...)
+    }
+
+    class Fixture {
+        - fixtureId : String
+        - roundNumber : Integer
+        + Fixture(...)
+    }
+
+    class Match {
+        - matchId : String
+        - matchTime : Date
+        - scoreTeamA : Integer
+        - scoreTeamB : Integer
+        + Match(...)
+    }
+
+    class Leaderboard {
+        - leaderboardId : String
+        - rankings : Map<String, Integer>
+        + Leaderboard(...)
+    }
+
+    class TournamentRegistration {
+        - registrationId : String
+        - registrationDate : Date
+        - feePaid : Boolean
+        + TournamentRegistration(...)
+    }
+}
+
+Admin "1" -- "0..*" Tournament : manages >
+Player "1" -- "0..*" TournamentRegistration : joins >
+TournamentRegistration "0..*" -- "1" Tournament : links to >
+Tournament "1" *-- "0..*" Team : contains >
+Team "1" *-- "1..*" TeamMember : contains >
+TeamMember "0..*" -- "1" Player : is >
+Tournament "1" *-- "0..*" Fixture : has >
+Fixture "1" *-- "1..*" Match : schedules >
+Match "1" -- "2" Team : played by >
+Match "0..*" -- "1" Ground : hosted at >
+Tournament "1" -- "1" Leaderboard : tracks >
+
+package Community {
+    class CommunityPost {
+        - postId : String
+        - content : String
+        - createdAt : Date
+        + CommunityPost(...)
+    }
+
+    class Comment {
+        - commentId : String
+        - content : String
+        - timestamp : Date
+        + Comment(...)
+        + comment() : void
+    }
+
+    class Reply {
+        - replyId : String
+        - content : String
+        - timestamp : Date
+        + Reply(...)
+    }
+
+    class Like {
+        - likeId : String
+        - timestamp : Date
+        + Like(...)
+        + like() : void
+    }
+
+    class Share {
+        - shareId : String
+        - platform : String
+        - timestamp : Date
+        + Share(...)
+    }
+
+    class Follow {
+        - followId : String
+        - timestamp : Date
+        + Follow(...)
+    }
+
+    class "Report" as CommunityReport {
+        - reportId : String
+        - reason : String
+        - timestamp : Date
+        + CommunityReport(...)
+    }
+}
+
+Player "1" -- "0..*" CommunityPost : creates >
+CommunityPost "1" *-- "0..*" Comment : contain >
+Comment "1" *-- "0..*" Reply : contain >
+CommunityPost "1" *-- "0..*" Like : receives >
+CommunityPost "1" *-- "0..*" Share : receives >
+Player "1" -- "0..*" Follow : initiates >
+Player "1" -- "0..*" Follow : receives <
+Player "1" -- "0..*" Like : gives >
+Player "1" -- "0..*" Comment : writes >
+CommunityPost "1" -- "0..*" CommunityReport : reported in >
+
+package Health {
+    class HealthData {
+        - healthDataId : String
+        - lastSynced : Date
+        + HealthData(...)
+    }
+
+    class Workout {
+        - workoutId : String
+        - type : String
+        - durationMinutes : Integer
+        - date : Date
+        + Workout(...)
+    }
+
+    class HeartRate {
+        - hrId : String
+        - bpm : Integer
+        - timestamp : Date
+        + HeartRate(...)
+    }
+
+    class SleepRecord {
+        - sleepId : String
+        - hoursSlept : Float
+        - date : Date
+        + SleepRecord(...)
+    }
+
+    class Calories {
+        - calId : String
+        - amountBurned : Float
+        - date : Date
+        + Calories(...)
+    }
+
+    class StepCount {
+        - stepId : String
+        - steps : Integer
+        - date : Date
+        + StepCount(...)
+    }
+}
+
+Player "1" *-- "1" HealthData : has >
+HealthData "1" *-- "0..*" Workout : contains >
+HealthData "1" *-- "0..*" HeartRate : contains >
+HealthData "1" *-- "0..*" SleepRecord : contains >
+HealthData "1" *-- "0..*" Calories : contains >
+HealthData "1" *-- "0..*" StepCount : contains >
+
+package AI {
+    interface GeminiAPI {
+        + generateResponse(prompt: String) : String
+    }
+
+    class RuleEngine {
+        + evaluateRules(data: String) : String
+    }
+
+    class AISportsAssistant {
+        - assistantId : String
+        + AISportsAssistant(...)
+    }
+
+    class AIInjuryAssistant {
+        - assistantId : String
+        + AIInjuryAssistant(...)
+    }
+
+    class RecommendationEngine {
+        - engineId : String
+        + RecommendationEngine(...)
+        + recommendGround() : Ground
+        + recommendEquipment() : Product
+        + recommendTournament() : Tournament
+        + recommendWorkout() : WorkoutRecommendation
+    }
+
+    class KnowledgeGraph {
+        - graphId : String
+        + KnowledgeGraph(...)
+    }
+
+    class PromptEngine {
+        - engineId : String
+        + PromptEngine(...)
+    }
+
+    class FitnessAnalytics {
+        - analyticsId : String
+        - fitnessScore : Float
+        + FitnessAnalytics(...)
+    }
+
+    class WorkoutRecommendation {
+        - recId : String
+        - routine : String
+        + WorkoutRecommendation(...)
+    }
+
+    class NutritionRecommendation {
+        - recId : String
+        - mealPlan : String
+        + NutritionRecommendation(...)
+    }
+
+    class RecoveryRecommendation {
+        - recId : String
+        - methods : String
+        + RecoveryRecommendation(...)
+    }
+}
+
+HealthData "1" -- "1" FitnessAnalytics : generates >
+AISportsAssistant ..> GeminiAPI : uses >
+AIInjuryAssistant ..> GeminiAPI : uses >
+AIInjuryAssistant ..> RuleEngine : uses >
+PromptEngine ..> GeminiAPI : interacts with >
+RecommendationEngine ..> KnowledgeGraph : uses >
+RecommendationEngine ..> HealthData : uses >
+RecommendationEngine ..> BookingHistory : uses >
+RecommendationEngine ..> Order : uses (PurchaseHistory) >
+RecommendationEngine ..> Address : uses (Location) >
+RecommendationEngine ..> Ground : generates Venue Recommendation >
+RecommendationEngine ..> Product : generates Equipment Recommendation >
+RecommendationEngine ..> Tournament : generates Tournament Recommendation >
+RecommendationEngine ..> WorkoutRecommendation : generates >
+RecommendationEngine ..> NutritionRecommendation : generates >
+RecommendationEngine ..> RecoveryRecommendation : generates >
+
+package Notification {
+    class Notification {
+        - notificationId : String
+        - title : String
+        - message : String
+        - type : String
+        - createdAt : Date
+        + Notification(...)
+    }
+
+    class NotificationPreference {
+        - prefId : String
+        - emailEnabled : Boolean
+        - pushEnabled : Boolean
+        + NotificationPreference(...)
+    }
+}
+
+User "1" -- "0..*" Notification : receives >
+User "1" *-- "1" NotificationPreference : configures >
+Notification ..> Booking : sends Booking Alerts >
+Notification ..> Tournament : sends Tournament Alerts >
+Notification ..> WorkoutRecommendation : sends Workout Reminder >
+Notification ..> HealthData : sends Hydration Reminder >
+Notification ..> Order : sends Order Updates >
+
+package Admin {
+    class "Report" as AdminReport {
+        - reportId : String
+        - title : String
+        - generatedAt : Date
+        + AdminReport(...)
+    }
+
+    class Analytics {
+        - analyticsId : String
+        - activeUsers : Integer
+        - totalRevenue : Double
+        + Analytics(...)
+    }
+
+    class AuditLog {
+        - logId : String
+        - action : String
+        - performedBy : String
+        - timestamp : Date
+        + AuditLog(...)
+    }
+}
+
+Admin "1" -- "0..*" AdminReport : generates >
+Admin "1" -- "1" Analytics : views >
+Admin "1" -- "0..*" AuditLog : reviews >
+@enduml

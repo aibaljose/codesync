@@ -17,10 +17,28 @@ export default function AdminDashboard({ user }) {
   const [resetting, setResetting] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
   const [systemStatus, setSystemStatus] = useState('');
+  const [isSystemLocked, setIsSystemLocked] = useState(true);
   const navigate = useNavigate();
 
+  const effectiveRole = user?.email === 'aibaljosej@gmail.com' ? 'admin' : (user?.role || 'dev');
 
   useEffect(() => {
+    if (user && effectiveRole !== 'admin' && effectiveRole !== 'intagrater') {
+      navigate('/home', { replace: true });
+    }
+  }, [user, effectiveRole, navigate]);
+
+  useEffect(() => {
+    // Listen to admin_key/isSystemLocked state in RTDB
+    const systemLockRef = ref(rtdb, 'admin_key/isSystemLocked');
+    const unsubscribeLock = onValue(systemLockRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setIsSystemLocked(snapshot.val() === true);
+      } else {
+        setIsSystemLocked(true);
+      }
+    });
+
     // Listen to all users presence & status
     const usersRef = ref(rtdb, 'status/users');
     const unsubscribeUsers = onValue(usersRef, (snapshot) => {
@@ -45,10 +63,45 @@ export default function AdminDashboard({ user }) {
     });
 
     return () => {
+      unsubscribeLock();
       unsubscribeUsers();
       unsubscribeSubmissions();
     };
   }, []);
+
+  const handleToggleSystemLock = async () => {
+    const nextState = !isSystemLocked;
+    const confirmMsg = nextState
+      ? "🔓 Enable workspace access for all users (isSystemLocked = true)?"
+      : "🔒 Lock workspace access for all users (isSystemLocked = false)? Active users in workspace will be returned to home.";
+    if (!window.confirm(confirmMsg)) return;
+
+    setSystemStatus(`⏳ Updating system lock state to ${nextState}...`);
+    try {
+      await update(ref(rtdb, 'admin_key'), { isSystemLocked: nextState });
+      setSystemStatus(`✅ Workspace access updated: ${nextState ? 'OPEN (isSystemLocked: true)' : 'LOCKED (isSystemLocked: false)'}`);
+      setTimeout(() => setSystemStatus(''), 6000);
+    } catch (err) {
+      console.error('Error toggling system lock:', err);
+      setSystemStatus(`❌ Error updating system lock: ${err.message}`);
+    }
+  };
+
+  const handleToggleUserResubmitAccess = async (uid, currentCanResubmit, displayName) => {
+    if (!uid) return;
+    const newCanResubmit = !currentCanResubmit;
+    setSystemStatus(`⏳ Updating resubmit access for ${displayName || uid}...`);
+    try {
+      await update(ref(rtdb, `status/users/${uid}`), {
+        canResubmit: newCanResubmit
+      });
+      setSystemStatus(`✅ Resubmit access ${newCanResubmit ? 'ENABLED (User can resubmit)' : 'BLOCKED'} for "${displayName || uid}"!`);
+      setTimeout(() => setSystemStatus(''), 6000);
+    } catch (err) {
+      console.error('Error toggling resubmit access:', err);
+      setSystemStatus(`❌ Error updating resubmit access: ${err.message}`);
+    }
+  };
 
   // Compute live metrics
   const usersArray = Object.values(usersMap);
@@ -64,7 +117,8 @@ export default function AdminDashboard({ user }) {
     const emailMatch = (item.email || '').toLowerCase().includes(q);
     const fileMatch = (item.fileName || item.originalName || '').toLowerCase().includes(q);
     const taskMatch = (item.taskId || '').toLowerCase().includes(q);
-    return nameMatch || emailMatch || fileMatch || taskMatch;
+    const hashMatch = (item.fileHash || '').toLowerCase().includes(q);
+    return nameMatch || emailMatch || fileMatch || taskMatch || hashMatch;
   });
 
   const formatDuration = (seconds) => {
@@ -479,6 +533,23 @@ export default function AdminDashboard({ user }) {
 
         <div className="toolbar-buttons">
           <button
+            onClick={handleToggleSystemLock}
+            disabled={resetting || backupLoading}
+            className="btn-reset-allocations"
+            style={{
+              background: isSystemLocked
+                ? 'linear-gradient(135deg, #059669, #047857)'
+                : 'linear-gradient(135deg, #dc2626, #991b1b)',
+              borderColor: isSystemLocked
+                ? 'rgba(16, 185, 129, 0.6)'
+                : 'rgba(239, 68, 68, 0.6)'
+            }}
+            title="Toggle global workspace access (admin_key/isSystemLocked in RTDB)"
+          >
+            {isSystemLocked ? '🔓 System Open (Click to Lock)' : '🔒 System Locked (Click to Open)'}
+          </button>
+
+          <button
             onClick={handleResetAllocations}
             disabled={resetting || backupLoading}
             className="btn-reset-allocations"
@@ -641,6 +712,18 @@ export default function AdminDashboard({ user }) {
                               {sub.originalName || sub.fileName}
                             </span>
                             <div className="storage-name-text">Saved as: {sub.fileName}</div>
+                            {sub.fileHash && (
+                              <div
+                                className="text-[11px] font-mono text-indigo-300 mt-1 flex items-center gap-1 cursor-pointer hover:text-indigo-200"
+                                title={`Click to copy SHA-256 Hash:\n${sub.fileHash}`}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(sub.fileHash);
+                                  alert(`Copied SHA-256 Hash:\n${sub.fileHash}`);
+                                }}
+                              >
+                                🔑 Hash: {sub.fileHash.slice(0, 12)}... 📋
+                              </div>
+                            )}
                           </td>
                           <td>
                             <span className="task-badge">{sub.taskId || 'Task001'}</span>
@@ -698,7 +781,9 @@ export default function AdminDashboard({ user }) {
                     <th>User</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Last Login</th>
                     <th>Submitted?</th>
+                    <th>Resubmit Access</th>
                     <th>Latest R2 Submission Link</th>
                     <th>Actions</th>
                   </tr>
@@ -706,7 +791,7 @@ export default function AdminDashboard({ user }) {
                 <tbody>
                   {usersArray.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="text-center py-4 text-gray-400">
+                      <td colSpan="9" className="text-center py-4 text-gray-400">
                         No active/registered users detected yet.
                       </td>
                     </tr>
@@ -733,6 +818,9 @@ export default function AdminDashboard({ user }) {
                             <option value="admin">🛡️ Admin (No Tickets)</option>
                           </select>
                         </td>
+                        <td className="time-cell text-xs text-gray-300">
+                          {u.lastLoginAtISO ? formatDate(u.lastLoginAtISO) : (u.lastActiveISO ? formatDate(u.lastActiveISO) : '—')}
+                        </td>
                         <td>
                           {u.hasSubmitted ? (
                             <span className="badge-success">✅ Yes</span>
@@ -741,27 +829,71 @@ export default function AdminDashboard({ user }) {
                           )}
                         </td>
                         <td>
-                          {u.lastSubmissionUrl ? (
-                            <a
-                              href={u.lastSubmissionUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-blue-400 underline text-sm hover:text-blue-300"
-                            >
-                              {u.lastSubmissionFile || 'Download Zip ↗'}
-                            </a>
+                          {u.hasSubmitted ? (
+                            u.canResubmit ? (
+                              <span className="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                🔓 Unlocked
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-xs font-semibold rounded bg-red-500/20 text-red-300 border border-red-500/30">
+                                🔒 Blocked
+                              </span>
+                            )
                           ) : (
                             <span className="text-gray-500 text-xs">—</span>
                           )}
                         </td>
                         <td>
-                          <button
-                            onClick={() => handleDeleteUser(u.uid, u.displayName)}
-                            className="px-2.5 py-1 bg-red-600/80 hover:bg-red-600 border border-red-500/50 text-white rounded-lg text-xs font-semibold shadow transition-all hover:scale-105 cursor-pointer"
-                            title="Delete this user from Realtime Database and Firestore"
-                          >
-                            🗑️ Delete
-                          </button>
+                          {u.lastSubmissionUrl ? (
+                            <div className="flex flex-col gap-1">
+                              <a
+                                href={u.lastSubmissionUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-400 underline text-sm hover:text-blue-300"
+                              >
+                                {u.lastSubmissionFile || 'Download Zip ↗'}
+                              </a>
+                              {u.lastSubmissionFileHash && (
+                                <span
+                                  className="text-[10px] font-mono text-indigo-300 cursor-pointer hover:text-indigo-200"
+                                  title={`Click to copy SHA-256 Hash:\n${u.lastSubmissionFileHash}`}
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(u.lastSubmissionFileHash);
+                                    alert(`Copied SHA-256 Hash:\n${u.lastSubmissionFileHash}`);
+                                  }}
+                                >
+                                  🔑 Hash: {u.lastSubmissionFileHash.slice(0, 10)}... 📋
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 text-xs">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            {u.hasSubmitted && (
+                              <button
+                                onClick={() => handleToggleUserResubmitAccess(u.uid, u.canResubmit, u.displayName)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold shadow transition-all hover:scale-105 cursor-pointer border ${
+                                  u.canResubmit
+                                    ? 'bg-amber-600/80 hover:bg-amber-600 border-amber-500/50 text-white'
+                                    : 'bg-emerald-600/80 hover:bg-emerald-600 border-emerald-500/50 text-white'
+                                }`}
+                                title={u.canResubmit ? 'Click to lock user resubmission' : 'Click to enable user resubmission access'}
+                              >
+                                {u.canResubmit ? '🔒 Lock Resubmit' : '🔓 Enable Resubmit'}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteUser(u.uid, u.displayName)}
+                              className="px-2.5 py-1 bg-red-600/80 hover:bg-red-600 border border-red-500/50 text-white rounded-lg text-xs font-semibold shadow transition-all hover:scale-105 cursor-pointer"
+                              title="Delete this user from Realtime Database and Firestore"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))

@@ -1,0 +1,40 @@
+@startuml
+skinparam style strictuml
+skinparam shadowing false
+
+object "player1: Player" as p1 {
+  playerId = "P1001"
+  name = "John Doe"
+  preferredSports = ["Football", "Tennis"]
+}
+
+object "ground1: Ground" as g1 {
+  groundId = "G500"
+  name = "Greenfield Arena"
+  basePrice = 1500.0
+}
+
+object "booking1: Booking" as b1 {
+  bookingId = "B9921"
+  bookingDate = "2026-07-25"
+  status = "Confirmed"
+  totalAmount = 1500.0
+}
+
+object "payment1: Payment" as pay1 {
+  paymentId = "PAY123"
+  amount = 1500.0
+  status = "Success"
+}
+
+object "healthData1: HealthData" as h1 {
+  steps = 8500
+  caloriesBurned = 450.5
+}
+
+p1 -- b1 : creates >
+b1 -- g1 : reserved for >
+b1 -- pay1 : uses >
+p1 -- h1 : has >
+
+@enduml

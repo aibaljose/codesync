@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
-import { auth, db } from './config/firebase'
+import { auth, db, rtdb } from './config/firebase'
+import { ref, onValue } from 'firebase/database'
 import { collection, getDocs, doc, runTransaction, query, where } from 'firebase/firestore'
 import { Dialog, DialogPanel } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
@@ -14,7 +15,20 @@ export default function Home({ user }) {
   const [isChallengeMode, setIsChallengeMode] = useState(false)
   const [assignedTicket, setAssignedTicket] = useState(null)
   const [ticketLoading, setTicketLoading] = useState(true)
+  const [isSystemLocked, setIsSystemLocked] = useState(true)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const systemLockRef = ref(rtdb, 'admin_key/isSystemLocked')
+    const unsubscribe = onValue(systemLockRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setIsSystemLocked(snapshot.val() === true)
+      } else {
+        setIsSystemLocked(true)
+      }
+    })
+    return () => unsubscribe()
+  }, [])
 
   const effectiveRole = user?.email === 'aibaljosej@gmail.com' ? 'admin' : (user?.role || 'dev')
 
@@ -283,34 +297,53 @@ export default function Home({ user }) {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center justify-center gap-x-6">
-                  <button
-                    onClick={() => setIsChallengeMode(true)}
-                    disabled={ticketLoading && !assignedTicket}
-                    className="rounded-md bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:-translate-y-0.5 shadow-lg shadow-indigo-500/25"
-                  >
-                    {ticketLoading
-                      ? "Allocating Workspace..."
-                      : "Launch Challenge Workspace"}
-                  </button>
-
-                  {assignedTicket?.url ? (
-                    <a
-                      href={assignedTicket.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm/6 font-semibold text-white hover:text-gray-300 transition-colors"
-                    >
-                       <span aria-hidden="true"></span>
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => navigate("/admin")}
-                      className="text-sm/6 font-semibold text-white hover:text-gray-300 transition-colors bg-transparent border-0 cursor-pointer"
-                    >
-                      View Control Center <span aria-hidden="true">→</span>
-                    </button>
+                <div className="flex flex-col items-center justify-center gap-4">
+                  {!isSystemLocked && (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-sm font-semibold shadow-lg">
+                      🔒 Workspace Access Locked by Administrator (System Closed)
+                    </div>
                   )}
+                  <div className="flex items-center justify-center gap-x-6">
+                    <button
+                      onClick={() => {
+                        if (!isSystemLocked) {
+                          alert('🔒 Workspace access is currently locked by administrator. You cannot access the workspace at this time.');
+                          return;
+                        }
+                        setIsChallengeMode(true);
+                      }}
+                      disabled={(ticketLoading && !assignedTicket) || !isSystemLocked}
+                      className={`rounded-md px-5 py-3 text-sm font-semibold text-white shadow-xs focus-visible:outline-2 focus-visible:outline-offset-2 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:-translate-y-0.5 shadow-lg ${
+                        !isSystemLocked
+                          ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 shadow-gray-700/25'
+                          : 'bg-indigo-500 hover:bg-indigo-400 focus-visible:outline-indigo-500 shadow-indigo-500/25'
+                      }`}
+                    >
+                      {ticketLoading
+                        ? "Allocating Workspace..."
+                        : !isSystemLocked
+                        ? "🔒 Workspace Access Locked"
+                        : "Launch Challenge Workspace"}
+                    </button>
+
+                    {assignedTicket?.url ? (
+                      <a
+                        href={assignedTicket.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm/6 font-semibold text-white hover:text-gray-300 transition-colors"
+                      >
+                         <span aria-hidden="true"></span>
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => navigate("/admin")}
+                        className="text-sm/6 font-semibold text-white hover:text-gray-300 transition-colors bg-transparent border-0 cursor-pointer"
+                      >
+                        View Control Center <span aria-hidden="true">→</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

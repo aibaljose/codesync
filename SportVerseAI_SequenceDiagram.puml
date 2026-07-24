@@ -1,0 +1,27 @@
+@startuml
+autonumber
+skinparam shadowing false
+
+actor Player
+participant "Mobile App" as App
+participant "Booking Service" as Booking
+participant "Payment Gateway" as Payment
+participant "Notification Service" as Notification
+database "MongoDB" as DB
+
+Player -> App: Select Ground & Slot
+App -> Booking: createBookingReq(groundId, slot, userId)
+Booking -> DB: checkAvailability(slot)
+DB --> Booking: available
+Booking -> Payment: initPayment(amount)
+Payment --> App: paymentIntent
+Player -> App: Confirm Payment
+App -> Payment: processPayment(details)
+Payment --> Booking: paymentSuccess
+Booking -> DB: saveBooking(details)
+DB --> Booking: bookingConfirmed
+Booking -> Notification: sendBookingAlert(userId)
+Notification --> Player: SMS/Push Notification
+Booking --> App: return Success
+App --> Player: Show Booking Ticket (QR Code)
+@enduml

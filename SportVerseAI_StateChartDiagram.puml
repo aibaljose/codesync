@@ -1,0 +1,15 @@
+@startuml
+skinparam shadowing false
+
+[*] --> Pending : createBooking()
+
+Pending --> Confirmed : paymentSuccess()
+Pending --> Failed : paymentFailure()
+
+Confirmed --> Completed : slotTimePassed()
+Confirmed --> Cancelled : userCancels()
+
+Failed --> [*]
+Completed --> [*]
+Cancelled --> [*]
+@enduml

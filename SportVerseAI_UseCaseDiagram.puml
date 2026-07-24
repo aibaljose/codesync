@@ -1,0 +1,46 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor Player as P
+actor GroundOwner as GO
+actor ShopOwner as SO
+actor Admin as A
+actor "AI Assistant" as AI
+actor "Health Connect" as HC
+
+rectangle "SportVerse AI System" {
+  usecase "Register/Login" as UC1
+  usecase "Book Ground" as UC2
+  usecase "Sync Health Data" as UC3
+  usecase "Buy Products" as UC4
+  usecase "Join Tournament" as UC5
+  usecase "Manage Grounds" as UC6
+  usecase "Manage Inventory" as UC7
+  usecase "Generate Reports" as UC8
+  usecase "Provide Recommendations" as UC9
+  usecase "Resolve Disputes" as UC10
+}
+
+P --> UC1
+P --> UC2
+P --> UC3
+P --> UC4
+P --> UC5
+
+GO --> UC1
+GO --> UC6
+
+SO --> UC1
+SO --> UC7
+
+A --> UC1
+A --> UC8
+A --> UC10
+
+AI --> UC9
+UC2 .> UC9 : <<extend>>
+
+HC --> UC3
+@enduml

@@ -62,11 +62,22 @@ function App() {
     )
   }
 
+  const effectiveRole = user?.email === 'aibaljosej@gmail.com' ? 'admin' : (user?.role || 'dev');
+  const canAccessAdmin = user && (effectiveRole === 'admin' || effectiveRole === 'intagrater');
+
   return (
     <Routes>
       <Route
         path="/admin"
-        element={<AdminDashboard user={user} />}
+        element={
+          !user ? (
+            <Navigate to="/login" replace />
+          ) : canAccessAdmin ? (
+            <AdminDashboard user={user} />
+          ) : (
+            <Navigate to="/home" replace />
+          )
+        }
       />  
       <Route
         path="/login"

@@ -1,0 +1,36 @@
+@startuml
+skinparam shadowing false
+
+package "SportVerse AI Application" {
+  [UI Component] <<React Native>>
+  
+  package "Backend Services (Node.js)" {
+    [Auth Service]
+    [Booking Service]
+    [Marketplace Service]
+    [Tournament Service]
+    [Health & AI Service]
+    [Notification Service]
+  }
+  
+  database "MongoDB" {
+    [Data Access Layer]
+  }
+}
+
+[UI Component] --> [Auth Service] : REST API
+[UI Component] --> [Booking Service] : REST API
+[UI Component] --> [Marketplace Service] : REST API
+[UI Component] --> [Tournament Service] : REST API
+[UI Component] --> [Health & AI Service] : REST API
+
+[Auth Service] --> [Data Access Layer]
+[Booking Service] --> [Data Access Layer]
+[Marketplace Service] --> [Data Access Layer]
+[Tournament Service] --> [Data Access Layer]
+[Health & AI Service] --> [Data Access Layer]
+
+[Health & AI Service] --> [Gemini API] : External
+[Booking Service] --> [Razorpay API] : External
+[Notification Service] --> [Firebase] : External
+@enduml

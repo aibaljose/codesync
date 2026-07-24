@@ -1,0 +1,27 @@
+@startuml
+skinparam shadowing false
+
+start
+:User logs in;
+:Search for Ground;
+if (AI Recommendation Needed?) then (Yes)
+  :Fetch Recommendations from Gemini API;
+  :Display Recommended Grounds;
+else (No)
+  :Display All Grounds;
+endif
+:Select Ground and Slot;
+if (Is Slot Available?) then (Yes)
+  :Proceed to Payment;
+  if (Payment Successful?) then (Yes)
+    :Generate QR Code;
+    :Confirm Booking in Database;
+    :Send Confirmation Notification;
+  else (No)
+    :Show Payment Failed Error;
+  endif
+else (No)
+  :Show Slot Unavailable Error;
+endif
+stop
+@enduml

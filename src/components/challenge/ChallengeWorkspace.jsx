@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { ref, push, set, update, serverTimestamp } from 'firebase/database';
+import { ref, push, set, update, serverTimestamp, onValue } from 'firebase/database';
 import { rtdb, auth } from '../../config/firebase';
 import FileExplorer from './FileExplorer';
 import EditorPane from './EditorPane';
@@ -31,6 +31,42 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, rea
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
   const [activeLeftTab, setActiveLeftTab] = useState('description'); // 'description' | 'files'
+  const [userStatus, setUserStatus] = useState(null);
+
+  const currentUser = user || auth.currentUser || { uid: 'anonymous', displayName: 'Anonymous User', email: 'anonymous@codesync.dev' };
+
+  // Listen to admin_key/isSystemLocked: if false, block submission and exit to home
+  useEffect(() => {
+    if (readOnly) return;
+    const systemLockRef = ref(rtdb, 'admin_key/isSystemLocked');
+    const unsubscribe = onValue(systemLockRef, (snapshot) => {
+      let open = true;
+      if (snapshot.exists()) {
+        open = snapshot.val() === true;
+      }
+      if (!open) {
+        alert("🔒 Administrator has locked the system. Workspace access is disabled. Returning to home portal.");
+        onExit();
+      }
+    });
+    return () => unsubscribe();
+  }, [readOnly, onExit]);
+
+  // Listen to current user status in RTDB to check if user has submitted & if admin enabled resubmit
+  useEffect(() => {
+    if (!currentUser?.uid || readOnly) return;
+    const statusRef = ref(rtdb, `status/users/${currentUser.uid}`);
+    const unsubscribe = onValue(statusRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setUserStatus(snapshot.val());
+      } else {
+        setUserStatus(null);
+      }
+    });
+    return () => unsubscribe();
+  }, [currentUser?.uid, readOnly]);
+
+  const isSubmissionBlocked = !readOnly && userStatus?.hasSubmitted === true && userStatus?.canResubmit !== true;
 
   // Auto-load the zip from the assigned ticket URL when provided
   useEffect(() => {
@@ -127,6 +163,10 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, rea
 
   const handleSubmit = async () => {
     if (!challengeData) return;
+    if (isSubmissionBlocked) {
+      alert("🔒 Submission is blocked. Admin must enable resubmit access for your account before you can submit again.");
+      return;
+    }
     setIsSubmitting(true);
     setSubmitStatus('Preparing submission package...');
     setError('');
@@ -178,6 +218,17 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, rea
       // 4. Save the zip to Cloudflare R2 inside appropriate submitted/ folder
       setSubmitStatus(`Saving "${baseName}" to Cloudflare R2 (${folderPrefix})...`);
       const arrayBuffer = await content.arrayBuffer();
+      
+      // Calculate SHA-256 checksum hash of the submission zip file
+      let fileHash = '';
+      try {
+        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        fileHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      } catch (hashErr) {
+        console.warn('Could not compute SHA-256 hash:', hashErr);
+      }
+
       const fileBody = new Uint8Array(arrayBuffer);
       const r2Key = `${folderPrefix}/${baseName}`;
 
@@ -208,6 +259,8 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, rea
         category: categoryName,
         fileSizeBytes: content.size,
         durationSeconds: duration,
+        fileHash: fileHash,
+        fileHashShort: fileHash ? `${fileHash.slice(0, 10)}...` : '',
         submittedAt: serverTimestamp(),
         submittedAtISO: new Date().toISOString()
       };
@@ -225,13 +278,18 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, rea
         const categorySubmissionRef = ref(rtdb, `submissions/${categoryName}/${userSubmissionRef.key}`);
         await set(categorySubmissionRef, { ...submissionRecord, id: userSubmissionRef.key });
 
-        // Update user status for dashboard counters
+        // Update user status for dashboard counters & block resubmission until admin unlocks
         const userStatusRef = ref(rtdb, `status/users/${currentUser.uid}`);
         await update(userStatusRef, {
           uid: currentUser.uid,
           displayName: currentUser.displayName || 'Anonymous User',
           email: currentUser.email || '',
           hasSubmitted: true,
+          canResubmit: false,
+          fileHash: fileHash,
+          file_hash: fileHash,
+          hashValue: fileHash,
+          lastSubmissionFileHash: fileHash,
           lastSubmissionAt: serverTimestamp(),
           lastSubmissionUrl: r2PublicUrl,
           lastSubmissionFile: baseName,
@@ -326,9 +384,17 @@ const ChallengeWorkspace = ({ onExit, ticketUrl, ticketName, ticketId, user, rea
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '6px', color: '#fcd34d', fontSize: '12px', fontWeight: '600' }}>
               <span>🔒 View Only (No Submission)</span>
             </div>
+          ) : isSubmissionBlocked ? (
+            <button
+              className="leetcode-submit-btn"
+              disabled
+              style={{ opacity: 0.6, cursor: 'not-allowed', background: '#475569', borderColor: '#64748b' }}
+              title="Submission blocked. Require admin permission to resubmit."
+            >
+              <span>🔒 Submitted (Awaiting Admin Unlock)</span>
+            </button>
           ) : (
-            <button className="leetcode-submit-btn" onClick={handleSubmit}>
-              
+            <button className="leetcode-submit-btn" onClick={handleSubmit} disabled={isSubmitting}>
               <span>Submit for intagration</span>
             </button>
           )}
